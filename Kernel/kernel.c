@@ -7,6 +7,7 @@
 #include <fonts.h>
 #include <syscallDispatcher.h>
 #include <sound.h>
+#include <memory.h>
 
 // extern uint8_t text;
 // extern uint8_t rodata;
@@ -50,6 +51,7 @@ void * initializeKernelBinary(){
 
 int main(){	
 	load_idt();
+	init_mm();
 
 	setFontSize(2);
 	

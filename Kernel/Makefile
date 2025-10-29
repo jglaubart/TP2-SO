@@ -4,7 +4,7 @@ include Makefile.inc
 ALLOCATOR ?= buddy
 
 KERNEL=kernel.bin
-SOURCES=$(wildcard *.c ./drivers/*.c ./idt/*.c)
+SOURCES=$(wildcard *.c ./drivers/*.c ./idt/*.c ./ds/*.c)
 SOURCES_ASM=$(wildcard asm/*.asm)
 
 # Select memory allocator source file based on ALLOCATOR variable
