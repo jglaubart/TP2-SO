@@ -1,11 +1,14 @@
 
+# Memory allocator selection (default: buddy)
+ALLOCATOR ?= buddy
+
 all:  bootloader kernel userland image
 
 bootloader:
 	cd Bootloader; make all
 
 kernel:
-	cd Kernel; make all
+	cd Kernel; make all ALLOCATOR=$(ALLOCATOR)
 
 userland:
 	cd Userland; make all

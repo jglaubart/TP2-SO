@@ -6,6 +6,7 @@
 #include <lib.h>
 #include <video.h>
 #include <time.h>
+#include <memory.h>
 
 extern int64_t register_snapshot[18];
 extern int64_t register_snapshot_taken;
@@ -51,6 +52,10 @@ int32_t syscallDispatcher(Registers * registers) {
 		case 0x800000E0: return sys_get_register_snapshot((int64_t *) registers->rdi);
 
 		case 0x800000F0: return sys_get_character_without_display();
+
+		case 0x80000100: return (int64_t) sys_malloc(registers->rdi);
+		case 0x80000101: return sys_free((void *) registers->rdi);
+		case 0x80000102: return sys_memstats((size_t *) registers->rdi, (size_t *) registers->rsi, (size_t *) registers->rdx);
 		
 		default:
             return 0;
@@ -226,4 +231,25 @@ int32_t sys_get_register_snapshot(int64_t * registers) {
 
 int32_t sys_get_character_without_display(void) {
 	return getKeyboardCharacter(0);
+}
+
+// ==================================================================
+// Memory management system calls
+// ==================================================================
+
+void * sys_malloc(size_t size) {
+	return malloc(size);
+}
+
+int32_t sys_free(void * ptr) {
+	if (!is_valid_heap_ptr(ptr)) {
+		return 0; // Return failure for invalid pointers
+	}
+	free(ptr);
+	return 1; // Return success
+}
+
+int32_t sys_memstats(size_t * total, size_t * used, size_t * available) {
+	memstats(total, used, available);
+	return 0;
 }

@@ -146,3 +146,36 @@ void memstats(size_t *total, size_t *used, size_t *available) {
         *available = HEAP_SIZE - (mm.blocks_used * BLOCK_SIZE);
     }
 }
+int is_valid_heap_ptr(void *ptr) {
+    if (ptr == NULL) {
+        return 0;
+    }
+    
+    uint8_t *ptr_byte = (uint8_t *)ptr;
+    uint8_t *heap_start = mm.heap;
+    uint8_t *heap_end = mm.heap + HEAP_SIZE;
+    
+    // Check if pointer is within heap bounds
+    if (ptr_byte < heap_start || ptr_byte >= heap_end) {
+        return 0;
+    }
+    
+    // Calculate the offset from the heap start
+    size_t offset = ptr_byte - heap_start;
+    
+    // Check if the pointer is aligned to a block boundary
+    // (malloc only returns pointers at block boundaries)
+    if (offset % BLOCK_SIZE != 0) {
+        return 0;
+    }
+    
+    // Calculate the block index
+    size_t block_index = offset / BLOCK_SIZE;
+    
+    // Verify the block is actually marked as used
+    if (!is_block_used(block_index)) {
+        return 0;
+    }
+    
+    return 1;
+}

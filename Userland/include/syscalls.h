@@ -2,6 +2,7 @@
 #define _LIBC_SYSCALLS_H_
 
 #include <stdint.h>
+#include <stddef.h>
 #include <sys.h>
 
 // Linux syscall prototypes
@@ -55,5 +56,13 @@ int32_t sys_sleep_milis(uint32_t milis);
 int32_t sys_get_register_snapshot(int64_t * registers);
 
 int32_t sys_get_character_without_display(void);
+
+// Memory management syscall prototypes
+/* 0x80000100 */
+void * sys_malloc(size_t size);
+/* 0x80000101 */
+int32_t sys_free(void * ptr);
+/* 0x80000102 */
+int32_t sys_memstats(size_t * total, size_t * used, size_t * available);
 
 #endif

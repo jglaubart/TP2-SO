@@ -2,6 +2,7 @@
 #define _SYSCALL_DISPATCHER_H_
 
 #include <stdint.h>
+#include <stddef.h>
 #include <keyboard.h>
 
 typedef struct {
@@ -67,5 +68,11 @@ int32_t sys_get_register_snapshot(int64_t * registers);
 
 // Get character without showing
 int32_t sys_get_character_without_display(void);
+
+// Memory management syscalls
+void * sys_malloc(size_t size);
+int32_t sys_free(void * ptr);
+int32_t sys_memstats(size_t * total, size_t * used, size_t * available);
+
 
 #endif

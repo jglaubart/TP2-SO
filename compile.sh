@@ -1,6 +1,14 @@
 # Validates the existance of the TPE-ARQ container, starts it up & compiles the project
 CONTAINER_NAME="TPE-ARQ-g08-64018-64288-64646"
 
+# Memory allocator selection (default: buddy)
+ALLOCATOR="${1:-buddy}"
+
+if [ "$ALLOCATOR" != "buddy" ] && [ "$ALLOCATOR" != "bitmap" ]; then
+    echo "${RED}Invalid allocator. Use 'buddy' or 'bitmap'. Defaulting to 'buddy'.${NC}"
+    ALLOCATOR="buddy"
+fi
+
 # COLORS
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -40,11 +48,12 @@ fi
 # Start container
 docker start "$CONTAINER_NAME" &> /dev/null
 echo "${GREEN}Container $CONTAINER_NAME started.${NC}"
+echo "${YELLOW}Compiling with ${ALLOCATOR} memory allocator...${NC}"
 
 # Compiles
 docker exec -it "$CONTAINER_NAME" make clean -C /root/ && \
 docker exec -it "$CONTAINER_NAME" make all -C /root/Toolchain && \
-docker exec -it "$CONTAINER_NAME" make all -C /root/
+docker exec -it "$CONTAINER_NAME" make all -C /root/ ALLOCATOR="$ALLOCATOR"
 
 
 if [ $? -ne 0 ]; then

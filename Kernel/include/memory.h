@@ -11,4 +11,6 @@ void free(void *ptr);
 
 void memstats(size_t *total, size_t *used, size_t *available);
 
+int is_valid_heap_ptr(void *ptr);
+
 #endif //TP_SO_MEMORYMANAGER_H

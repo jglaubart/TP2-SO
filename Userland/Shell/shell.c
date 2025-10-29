@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include <sys.h>
 #include <exceptions.h>
+#include <syscalls.h>
 
 #ifdef ANSI_4_BIT_COLOR_SUPPORT
     #include <ansiColors.h>
@@ -33,6 +35,9 @@ int man(void);
 int snake(void);
 int regs(void);
 int time(void);
+int mem_test_malloc(void);
+int mem_test_free(void);
+int mem_stats(void);
 
 static void printPreviousCommand(enum REGISTERABLE_KEYS scancode);
 static void printNextCommand(enum REGISTERABLE_KEYS scancode);
@@ -52,11 +57,14 @@ Command commands[] = {
     { .name = "echo",           .function = (int (*)(void))(unsigned long long)echo ,           .description = "Prints the input string" },
     { .name = "exit",           .function = (int (*)(void))(unsigned long long)exit,            .description = "Command exits w/ the provided exit code or 0" },
     { .name = "font",           .function = (int (*)(void))(unsigned long long)font,            .description = "Increases or decreases the font size.\n\t\t\t\tUse:\n\t\t\t\t\t  + font increase\n\t\t\t\t\t  + font decrease" },
+    { .name = "free",           .function = (int (*)(void))(unsigned long long)mem_test_free,   .description = "Frees a previously allocated memory block.\n\t\t\t\tUse: free <address_in_hex>" },
     { .name = "help",           .function = (int (*)(void))(unsigned long long)help,            .description = "Prints the available commands" },
     { .name = "history",        .function = (int (*)(void))(unsigned long long)history,         .description = "Prints the command history" },
     { .name = "invop",          .function = (int (*)(void))(unsigned long long)_invalidopcode,  .description = "Generates an invalid Opcode exception" },
-    { .name = "regs",           .function = (int (*)(void))(unsigned long long)regs,            .description = "Prints the register snapshot, if any" },
+    { .name = "malloc",         .function = (int (*)(void))(unsigned long long)mem_test_malloc, .description = "Allocates memory and prints the address.\n\t\t\t\tUse: malloc <size_in_bytes>" },
     { .name = "man",            .function = (int (*)(void))(unsigned long long)man,             .description = "Prints the description of the provided command" },
+    { .name = "memstats",       .function = (int (*)(void))(unsigned long long)mem_stats,       .description = "Displays memory statistics (total, used, available)" },
+    { .name = "regs",           .function = (int (*)(void))(unsigned long long)regs,            .description = "Prints the register snapshot, if any" },
     { .name = "snake",          .function = (int (*)(void))(unsigned long long)snake,           .description = "Launches the snake game" },
     { .name = "time",           .function = (int (*)(void))(unsigned long long)time,            .description = "Prints the current time" },
 };
@@ -281,4 +289,108 @@ int regs(void) {
 
 int snake(void) {
     return exec(snakeModuleAddress);
+}
+
+int mem_test_malloc(void) {
+    char * size_str = strtok(NULL, " ");
+    
+    if (size_str == NULL) {
+        perror("Usage: malloc <size_in_bytes>\n");
+        return 1;
+    }
+    
+    size_t size = 0;
+    sscanf(size_str, "%d", &size);
+    
+    if (size == 0) {
+        perror("Invalid size\n");
+        return 1;
+    }
+    
+    void * ptr = sys_malloc(size);
+    
+    if (ptr == NULL) {
+        perror("malloc failed: out of memory\n");
+        return 1;
+    }
+    
+    printf("Allocated %d bytes at address: 0x%x\n", size, (unsigned int)(uintptr_t)ptr);
+    return 0;
+}
+
+int mem_test_free(void) {
+    char * addr_str = strtok(NULL, " ");
+    
+    if (addr_str == NULL) {
+        perror("Usage: free <address_in_hex>\n");
+        return 1;
+    }
+    
+    // Skip "0x" or "0X" prefix if present
+    if (addr_str[0] == '0' && (addr_str[1] == 'x' || addr_str[1] == 'X')) {
+        addr_str += 2;
+    }
+    
+    // Check string length to prevent overflow (max 16 hex chars for 64-bit)
+    int len = 0;
+    for (int i = 0; addr_str[i] != '\0'; i++) {
+        len++;
+    }
+    
+    if (len > 16) {
+        perror("Invalid address: too long\n");
+        return 1;
+    }
+    
+    // Manual hex parsing
+    uint64_t address = 0;
+    for (int i = 0; addr_str[i] != '\0'; i++) {
+        char c = addr_str[i];
+        
+        // Check for overflow before multiplying
+        if (address > (0xFFFFFFFFFFFFFFFFULL / 16)) {
+            perror("Invalid address: value too large\n");
+            return 1;
+        }
+        
+        address *= 16;
+        
+        if (c >= '0' && c <= '9') {
+            address += c - '0';
+        } else if (c >= 'a' && c <= 'f') {
+            address += c - 'a' + 10;
+        } else if (c >= 'A' && c <= 'F') {
+            address += c - 'A' + 10;
+        } else {
+            perror("Invalid address format\n");
+            return 1;
+        }
+    }
+    
+    if (address == 0) {
+        perror("Cannot free NULL address\n");
+        return 1;
+    }
+    
+    int result = sys_free((void *)address);
+    if (result) {
+        printf("Freed memory at address: 0x%x\n", address);
+    } else {
+        perror("Failed to free memory: invalid address or not in heap\n");
+    }
+    return 0;
+}
+
+int mem_stats(void) {
+    size_t total = 0, used = 0, available = 0;
+    
+    sys_memstats(&total, &used, &available);
+    
+    printf("\n\e[0;36m=== Memory Statistics ===\e[0m\n");
+    printf("Total memory:     %d bytes (%d KB)\n", total, total / 1024);
+    printf("Used memory:      %d bytes (%d KB)\n", used, used / 1024);
+    printf("Available memory: %d bytes (%d KB)\n", available, available / 1024);
+    printf("Usage: %d%%\n\n", total > 0 ? (used * 100) / total : 0);
+    
+    return 0;
 }

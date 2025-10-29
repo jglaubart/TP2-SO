@@ -225,3 +225,44 @@ void memstats(size_t *total, size_t *used, size_t *available) {
         *used = TOTAL_HEAP_SIZE - available_total;
     }
 }
+
+int is_valid_heap_ptr(void *ptr) {
+    if (ptr == NULL) {
+        return 0;
+    }
+    
+    uint8_t *ptr_byte = (uint8_t *)ptr;
+    uint8_t *heap_start = heap;
+    uint8_t *heap_end = heap + TOTAL_HEAP_SIZE;
+    
+    // Check if pointer is within heap bounds
+    if (ptr_byte < heap_start || ptr_byte >= heap_end) {
+        return 0;
+    }
+    
+    // Check if there's enough space for the metadata header
+    if (ptr_byte - sizeof(AllocMetadata) < heap_start) {
+        return 0;
+    }
+    
+    // Verify this is actually a valid allocated block by checking metadata
+    AllocMetadata *metadata = (AllocMetadata *)(ptr_byte - sizeof(AllocMetadata));
+    TreeNode *node = metadata->tree_node;
+    
+    // Verify the tree node pointer is valid (within tree_nodes array)
+    if (node < tree_nodes || node >= tree_nodes + TOTAL_NODES) {
+        return 0;
+    }
+    
+    // Verify the node is actually occupied
+    if (node->status != STATUS_OCCUPIED) {
+        return 0;
+    }
+    
+    // Verify the pointer matches what malloc would have returned for this node
+    if (node->mem_addr + sizeof(AllocMetadata) != ptr_byte) {
+        return 0;
+    }
+    
+    return 1;
+}
