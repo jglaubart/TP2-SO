@@ -108,6 +108,28 @@ void * malloc(size_t size) {
 
 // Libera memoria
 void free(void *ptr) {
+        if (ptr == NULL) {
+        return;
+    }
+    
+    // Calcula el índice del bloque inicial
+    uint8_t *heap_start = mm.heap;
+    size_t offset = (uint8_t *)ptr - heap_start;
+    size_t start_block = offset / BLOCK_SIZE;
+    
+    // Verifica que el puntero sea válido
+    if (start_block >= NUM_BLOCKS) {
+        return;
+    }
+    
+    // Libera bloques contiguos hasta encontrar uno libre
+    size_t blocks_freed = 0;
+    for (size_t i = start_block; i < NUM_BLOCKS && is_block_used(i); i++) {
+        mark_block_free(i);
+        blocks_freed++;
+    }
+    
+    mm.blocks_used -= blocks_freed;
 }
 
 // Obtiene estadísticas de memoria
