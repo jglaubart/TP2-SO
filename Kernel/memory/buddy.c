@@ -33,7 +33,9 @@ static TreeNode *root_node = NULL;
 
 
 // FUNCIONES AUXILIARES 
-
+static size_t get_block_size(int order) {
+    return (size_t)1u << order;
+}
 static TreeNode *build_tree(int idx, int order, uint8_t *mem_base) {
     TreeNode *current = &tree_nodes[idx];
     current->parent_node = NULL;
@@ -61,6 +63,79 @@ static TreeNode *build_tree(int idx, int order, uint8_t *mem_base) {
 }
 
 
+static int calculate_order(size_t size) {
+    int order = MIN_BLOCK_ORDER;
+
+    while (order <= MAX_BLOCK_ORDER && get_block_size(order) < size) {
+        order++;
+    }
+
+    return order;
+}
+
+static TreeNode *find_and_allocate(TreeNode *current, int order) {
+    if (current == NULL) {
+        return NULL;
+    }
+
+    if (current->status == STATUS_OCCUPIED) {
+        return NULL;
+    }
+
+    if (current->block_order < order) {
+        return NULL;
+    }
+
+    if (current->block_order == order) {
+        if (current->status == STATUS_AVAILABLE) {
+            current->status = STATUS_OCCUPIED;
+            return current;
+        }
+        return NULL;
+    }
+
+    if (current->left_child == NULL || current->right_child == NULL) {
+        return NULL;
+    }
+
+    if (current->status == STATUS_AVAILABLE) {
+        current->status = STATUS_DIVIDED;
+    }
+
+    TreeNode *allocated = find_and_allocate(current->left_child, order);
+    if (allocated != NULL) {
+        return allocated;
+    }
+
+    allocated = find_and_allocate(current->right_child, order);
+    if (allocated != NULL) {
+        return allocated;
+    }
+
+    if (current->left_child->status == STATUS_AVAILABLE && current->right_child->status == STATUS_AVAILABLE) {
+        current->status = STATUS_AVAILABLE;
+    }
+
+    return NULL;
+}
+
+static void merge_upwards(TreeNode *current) {
+    while (current != NULL) {
+        if (current->left_child != NULL && current->right_child != NULL) {
+            if (current->left_child->status == STATUS_AVAILABLE && current->right_child->status == STATUS_AVAILABLE) {
+                current->status = STATUS_AVAILABLE;
+                current = current->parent_node;
+            } else {
+                current->status = STATUS_DIVIDED;
+                current = NULL;
+            }
+        } else {
+            current = current->parent_node;
+        }
+    }
+}
+
+
 static size_t count_available_bytes(const TreeNode *current) {
     if (current == NULL) {
         return 0;
@@ -82,9 +157,39 @@ void init_mm(void) {
     root_node = build_tree(0, MAX_BLOCK_ORDER, heap);
 }
 
-void *malloc(size_t size){}
+void * malloc(size_t size) {
+    if (root_node == NULL) {
+        init_mm();
+    }
 
-void free(void *ptr){}
+    if (size == 0 || size > TOTAL_HEAP_SIZE) {
+        return NULL;
+    }
+
+    if (size > TOTAL_HEAP_SIZE - sizeof(AllocMetadata)) {
+        return NULL;
+    }
+
+    size_t total_needed = size + sizeof(AllocMetadata);
+    int order = calculate_order(total_needed);
+
+    if (order > MAX_BLOCK_ORDER) {
+        return NULL;
+    }
+
+    TreeNode *allocated_node = find_and_allocate(root_node, order);
+    if (allocated_node == NULL) {
+        return NULL;
+    }
+
+    AllocMetadata *metadata = (AllocMetadata *)allocated_node->mem_addr;
+    metadata->tree_node = allocated_node;
+
+    return allocated_node->mem_addr + sizeof(AllocMetadata);
+}
+
+void free(void *ptr){
+}
 
 void memstats(size_t *total, size_t *used, size_t *available) {
     if (root_node == NULL) {
