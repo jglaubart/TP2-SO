@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-void init(void);
+void init_mm(void);
 
 void *malloc(size_t size);
 
