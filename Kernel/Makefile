@@ -1,8 +1,21 @@
 include Makefile.inc
 
+# Memory allocator selection (default: buddy)
+ALLOCATOR ?= buddy
+
 KERNEL=kernel.bin
 SOURCES=$(wildcard *.c ./drivers/*.c ./idt/*.c)
 SOURCES_ASM=$(wildcard asm/*.asm)
+
+# Select memory allocator source file based on ALLOCATOR variable
+ifeq ($(ALLOCATOR),bitmap)
+    MEMORY_SRC=./memory/bitmap.c
+else
+    MEMORY_SRC=./memory/buddy.c
+endif
+
+SOURCES += $(MEMORY_SRC)
+
 HOT_OBJECTS=./drivers/video.o fonts.o # Compiled with -O3
 OBJECTS=$(SOURCES:.c=.o)
 OBJECTS_ASM=$(SOURCES_ASM:.asm=.o)
@@ -32,6 +45,6 @@ $(LOADEROBJECT):
 	$(ASM) $(ASMFLAGS) $(LOADERSRC) -o $(LOADEROBJECT)
 
 clean:
-	rm -rf */*.o *.o *.bin
+	rm -rf */*.o *.o *.bin memory/*.o
 
 .PHONY: all clean
