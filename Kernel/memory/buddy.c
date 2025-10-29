@@ -188,7 +188,25 @@ void * malloc(size_t size) {
     return allocated_node->mem_addr + sizeof(AllocMetadata);
 }
 
-void free(void *ptr){
+void free(void *ptr) {
+    if (ptr == NULL) {
+        return;
+    }
+
+    if (root_node == NULL) {
+        return;
+    }
+
+    AllocMetadata *metadata = (AllocMetadata *)((uint8_t *)ptr - sizeof(AllocMetadata));
+    TreeNode *node_to_free = metadata->tree_node;
+
+    if (node_to_free == NULL || node_to_free->status != STATUS_OCCUPIED) {
+        return;
+    }
+
+    metadata->tree_node = NULL;
+    node_to_free->status = STATUS_AVAILABLE;
+    merge_upwards(node_to_free->parent_node);
 }
 
 void memstats(size_t *total, size_t *used, size_t *available) {
