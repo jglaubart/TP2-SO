@@ -26,6 +26,15 @@ if [ ! "$(docker ps -a | grep "$CONTAINER_NAME")" ]; then
     echo "${GREEN}Container $CONTAINER_NAME created.${NC}"
 else
     echo "${GREEN}Container $CONTAINER_NAME exists.${NC}"
+    # Verify the container actually has the repository mounted at /root
+    docker exec "$CONTAINER_NAME" test -f /root/Makefile &> /dev/null
+    if [ $? -ne 0 ]; then
+        echo "${YELLOW}Container $CONTAINER_NAME does not contain the repository mounted at /root. Recreating container with volume...${NC}"
+        # Remove the old container and create a new one with the correct mount
+        docker rm -f "$CONTAINER_NAME" &> /dev/null || true
+        docker run -d -v ${PWD}:/root --security-opt seccomp:unconfined -it --name "$CONTAINER_NAME" agodio/itba-so:2.0
+        echo "${GREEN}Container $CONTAINER_NAME recreated with repository mounted.${NC}"
+    fi
 fi
 
 # Start container
