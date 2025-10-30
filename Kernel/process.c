@@ -47,3 +47,7 @@ Process * createProcess(uint8_t * function, int argc, char ** argv, int priority
     
     return process;
 }
+
+void freeProcess(Process * p){
+    
+}
