@@ -37,8 +37,6 @@ void load_idt() {
 	// IRQ1 -> Keyboard
 	picMasterMask(KEYBOARD_PIC_MASTER & TIMER_PIC_MASTER);
 	picSlaveMask(NO_INTERRUPTS);
-			
-	//_sti();
 }
 
 static void setup_IDT_entry(int index, uint64_t offset) {

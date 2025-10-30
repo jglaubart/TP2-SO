@@ -55,6 +55,9 @@ int main(){
 	load_idt();
 	init_mm();
 	initScheduler();
+
+
+	_sti();
 	setFontSize(2);
 	
 	
