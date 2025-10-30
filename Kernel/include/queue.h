@@ -6,7 +6,7 @@
 
 #include "lib.h"  // Para memcpy
 
-typedef struct QueueCDT * QueueADT; // queue that iterates cyclically
+typedef struct QueueCDT * QueueADT; // queue con roundrobin
 typedef int (*QueueElemCmpFn)(void *, void *);
 
 QueueADT createQueue(QueueElemCmpFn cmp, size_t elemSize);

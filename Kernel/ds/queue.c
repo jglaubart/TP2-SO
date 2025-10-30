@@ -1,5 +1,5 @@
 #include "queue.h"
-#include "malloc.h"  // Tu nuevo wrapper
+#include "memory.h"  // Tu nuevo wrapper
 #include "panic.h"
 
 struct Node {
