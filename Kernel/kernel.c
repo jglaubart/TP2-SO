@@ -8,6 +8,7 @@
 #include <syscallDispatcher.h>
 #include <sound.h>
 #include <memory.h>
+#include <scheduler.h>
 
 // extern uint8_t text;
 // extern uint8_t rodata;
@@ -52,7 +53,7 @@ void * initializeKernelBinary(){
 int main(){	
 	load_idt();
 	init_mm();
-
+	initScheduler();
 	setFontSize(2);
 	
 	((EntryPoint)shellModuleAddress)();
