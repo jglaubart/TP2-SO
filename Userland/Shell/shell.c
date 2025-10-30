@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <tests.h>
 
 #include <sys.h>
 #include <exceptions.h>
@@ -38,6 +39,7 @@ int time(void);
 int mem_test_malloc(void);
 int mem_test_free(void);
 int mem_stats(void);
+int _test_mm(void);
 
 static void printPreviousCommand(enum REGISTERABLE_KEYS scancode);
 static void printNextCommand(enum REGISTERABLE_KEYS scancode);
@@ -67,7 +69,8 @@ Command commands[] = {
 
     { .name = "malloc",         .function = (int (*)(void))(unsigned long long)mem_test_malloc, .description = "Allocates memory and prints the address.\n\t\t\t\tUse: malloc <size_in_bytes>" },
     { .name = "memstats",       .function = (int (*)(void))(unsigned long long)mem_stats,       .description = "Displays memory statistics (total, used, available)" },
-    { .name = "free",           .function = (int (*)(void))(unsigned long long)mem_test_free,   .description = "Frees a previously allocated memory block.\n\t\t\t\tUse: free <address_in_hex>" }
+    { .name = "free",           .function = (int (*)(void))(unsigned long long)mem_test_free,   .description = "Frees a previously allocated memory block.\n\t\t\t\tUse: free <address_in_hex>" },
+    { .name = "_test_mm",       .function = (int (*)(void))(unsigned long long)_test_mm,        .description = "Tests the memory manager by allocating and freeing memory.\n\t\t\t\tUse: _test_mm <max_memory>" }
 };
 
 char command_history[HISTORY_SIZE][MAX_BUFFER_SIZE] = {0};
@@ -397,3 +400,17 @@ int mem_stats(void) {
     
     return 0;
 }
+
+int _test_mm(void){ //MODIFICAR, hasta ahora se lanza como funcion, al implementar syscall de procesos lanzar como proceso
+    char * size_str = strtok(NULL, " ");
+
+    if (size_str == NULL || strtok(NULL, " ") != NULL) {
+        perror("Usage: _test_mm <max_memory>\n");
+        return 1;
+    }
+
+    char * args[] = { size_str };
+    uint64_t result = test_mm(1, args);
+    return (int)result;
+}
+
