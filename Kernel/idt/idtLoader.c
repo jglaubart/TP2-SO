@@ -38,7 +38,7 @@ void load_idt() {
 	picMasterMask(KEYBOARD_PIC_MASTER & TIMER_PIC_MASTER);
 	picSlaveMask(NO_INTERRUPTS);
 			
-	_sti();
+	//_sti();
 }
 
 static void setup_IDT_entry(int index, uint64_t offset) {

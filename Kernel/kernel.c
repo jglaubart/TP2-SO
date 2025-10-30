@@ -9,6 +9,7 @@
 #include <sound.h>
 #include <memory.h>
 #include <scheduler.h>
+#include <panic.h>
 
 // extern uint8_t text;
 // extern uint8_t rodata;
@@ -55,6 +56,7 @@ int main(){
 	init_mm();
 	initScheduler();
 	setFontSize(2);
+	
 	
 	((EntryPoint)shellModuleAddress)();
 

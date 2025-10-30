@@ -1,5 +1,5 @@
-# Validates the existance of the TPE-ARQ container, starts it up & compiles the project
-CONTAINER_NAME="TPE-ARQ-g08-64018-64288-64646"
+# Validates the existance of the TP2-SO container, starts it up & compiles the project
+CONTAINER_NAME="TP2-SO"
 
 # Memory allocator selection (default: buddy)
 ALLOCATOR="${1:-buddy}"
@@ -29,7 +29,7 @@ if [ ! "$(docker ps -a | grep "$CONTAINER_NAME")" ]; then
     docker pull agodio/itba-so:2.0
     echo "Creating container..."
     # Note: ${PWD}:/root. Using another container to compile might fail as the compiled files would not be guaranteed to be at $PWD
-    # Always use TPE-ARQ to compile
+    # Always use TP2-SO to compile
     docker run -d -v ${PWD}:/root --security-opt seccomp:unconfined -it --name "$CONTAINER_NAME" agodio/itba-so:2.0
     echo "${GREEN}Container $CONTAINER_NAME created.${NC}"
 else

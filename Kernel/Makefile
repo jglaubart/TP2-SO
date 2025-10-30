@@ -3,7 +3,8 @@ include Makefile.inc
 # Memory allocator selection (default: buddy)
 ALLOCATOR ?= buddy
 
-KERNEL=kernel.bin
+KERNEL_BIN=kernel.bin
+KERNEL_ELF=kernel.elf
 SOURCES=$(wildcard *.c ./drivers/*.c ./idt/*.c ./ds/*.c)
 SOURCES_ASM=$(wildcard asm/*.asm)
 
@@ -24,10 +25,13 @@ LOADERSRC=loader.asm
 LOADEROBJECT=$(LOADERSRC:.asm=.o)
 STATICLIBS=
 
-all: $(KERNEL)
+all: $(KERNEL_BIN)
 
-$(KERNEL): $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
-	$(LD) $(LDFLAGS) -T kernel.ld -o $(KERNEL) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
+$(KERNEL_ELF): $(LOADEROBJECT) $(OBJECTS) $(STATICLIBS) $(OBJECTS_ASM)
+	$(LD) $(LDFLAGS) -T kernel.ld -o $(KERNEL_ELF) $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(STATICLIBS)
+
+$(KERNEL_BIN): $(KERNEL_ELF)
+	$(OBJCOPY) -O binary $(KERNEL_ELF) $(KERNEL_BIN)
 
 $(HOT_OBJECTS) : %.o: %.c
 	$(GCC) -O3 $(GCCFLAGS) -I./include -c $< -o $@
@@ -45,6 +49,6 @@ $(LOADEROBJECT):
 	$(ASM) $(ASMFLAGS) $(LOADERSRC) -o $(LOADEROBJECT)
 
 clean:
-	rm -rf */*.o *.o *.bin memory/*.o
+	rm -rf */*.o *.o *.bin memory/*.o $(KERNEL_ELF)
 
 .PHONY: all clean
