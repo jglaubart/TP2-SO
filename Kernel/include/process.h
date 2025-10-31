@@ -30,4 +30,9 @@ Process * createProcess(uint8_t * function, int argc, char ** argv, int priority
 void freeProcess(Process * p);
 int initPCBTable();
 
+int kill(int pid);
+int block(int pid);
+int unblock(int pid);
+Process * getProcess(int pid);
+
 #endif

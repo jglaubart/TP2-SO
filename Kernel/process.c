@@ -3,6 +3,8 @@
 #include "memory.h"
 #include "panic.h"
 #include <string.h>
+#include "scheduler.h"
+#include "interrupts.h"
 
 typedef struct pcb_table {
     Process * processes[MAX_PROCESSES];
@@ -178,10 +180,53 @@ int setProcessState(Process *process, int state){
 
 
 int block(int pid) {
+    Process * process = getProcess(pid);
+    if (process == NULL) {
+        return -1;
+    }
+
+    if(process->state != PROCESS_STATE_RUNNING) {
+        return -1;
+    }
+    process->state = PROCESS_STATE_BLOCKED;
+    removeProcessFromScheduler(process);
+
+    // interrupcion para hacer context switch
+    _force_timer_interrupt();
+    return 0;
+
+}
+
+int kill(int pid) {
+    Process * process = getProcess(pid);
+    if (process == NULL) {
+        return -1;
+    }
+    
+    removeProcessFromScheduler(process);
+
+    // interrupcion para hacer context switch
+    if(process->state == PROCESS_STATE_RUNNING) {
+        _force_timer_interrupt();
+    }
+    
+    process->state = PROCESS_STATE_TERMINATED;
+
+    freeProcess(process);
     return 0;
 }
 
 int unblock(int pid) {
+    Process * process = getProcess(pid);
+    if (process == NULL) {
+        return -1;
+    }
+
+    if(process->state != PROCESS_STATE_BLOCKED) {
+        return -1;
+    }
+    process->state = PROCESS_STATE_READY;
+    addProcessToScheduler(process);
     return 0;
 }
 

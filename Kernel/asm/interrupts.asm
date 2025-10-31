@@ -2,7 +2,8 @@
 GLOBAL _cli
 GLOBAL _sti
 GLOBAL _hlt
-
+GLOBAL _force_timer_interrupt
+GLOBAL forced_timer_int
 GLOBAL picMasterMask
 GLOBAL picSlaveMask
 
@@ -138,6 +139,11 @@ _sti:
 	sti
 	ret
 
+_force_timer_interrupt:
+	mov BYTE [forced_timer_int], 0x01
+	int 0x20
+	ret
+	
 picMasterMask:
 	push rbp     ; Stack frame
 	mov rbp, rsp
@@ -260,6 +266,7 @@ section .bss
 	exception_register_snapshot resq 18
 	register_snapshot resq 18
 	register_snapshot_taken resb 1
+	forced_timer_int resb 1
 
 section .rodata
 	REGISTER_SNAPSHOT_KEY_SCANCODE equ 0x58 ; F12 KEY SCANCODE
