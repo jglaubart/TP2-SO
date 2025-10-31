@@ -104,7 +104,7 @@ int32_t getPid(void){
     return sys_getpid();
 }
 /* 0x80000201 */
-int32_t createProcess(void * function, uint8_t * argc, uint8_t ** argv){
+int32_t createProcess(void * function, uint64_t argc, uint8_t ** argv){
     return sys_create_process(function, argc, argv);
 }
 /* 0x80000202 */

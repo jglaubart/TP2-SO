@@ -10,6 +10,7 @@
 #include <memory.h>
 #include <scheduler.h>
 #include <panic.h>
+#include "time.h"
 
 // extern uint8_t text;
 // extern uint8_t rodata;
@@ -51,20 +52,42 @@ void * initializeKernelBinary(){
 	return getStackBase();
 }
 
+void processA(){
+	while(1){
+		print("Hello, kernel here!\n");
+		sleep(1);
+	}
+	
+}
+
+void processB(){
+	while(1){
+		print("Process B, kernel here!\n");
+		sleep(1);
+	}
+}
+
 int main(){	
 	load_idt();
 	initMemory();
 	initPCBTable();
 	initScheduler();
-
 	setFontSize(2);
+
+	char ** argv = myMalloc(sizeof(char *));
+	argv[0] = "shell";
+	createProcess(shellModuleAddress, 1, argv, MID_PRIORITY, 1);
+
+	// createProcess(processA, 0, NULL, MID_PRIORITY, -1);
+	// createProcess(processB, 0, NULL, MID_PRIORITY, -1);
+
+	//((EntryPoint)shellModuleAddress)();
+
 	_sti();
 	
-	
-	
-	((EntryPoint)shellModuleAddress)();
 
 	__builtin_unreachable();
 
 	return 0;
 }
+

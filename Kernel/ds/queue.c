@@ -1,6 +1,9 @@
+// QueueADT
+
 #include "queue.h"
-#include "memory.h"  // Tu nuevo wrapper
+
 #include "panic.h"
+#include "memory.h"
 
 struct Node {
 	struct Node *next;
@@ -206,11 +209,6 @@ int queueIteratorIsInitialized(QueueADT queue) {
 int queueElementExists(QueueADT queue, void *data) {
 	int size = queueSize(queue);
 	void *buffer = myMalloc(queue->dataSize);
-	
-	if (buffer == NULL) {
-		return 0;
-	}
-	
 	int found = 0;
 
 	queueBeginCyclicIter(queue);

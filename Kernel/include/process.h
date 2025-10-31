@@ -4,6 +4,13 @@
 
 #define PROCESS_STACK_SIZE 4096
 #define MAX_PROCESSES 64
+#define IDLE_PROCESS_PID 0
+#define INIT_PROCESS_PID 1
+#define SHELL_PROCESS_PID 2
+#define MAX_PRIORITY 0
+#define MIN_PRIORITY 4
+#define MID_PRIORITY 2
+
 
 typedef enum ProcessState {
     PROCESS_STATE_READY,
@@ -34,5 +41,7 @@ int kill(int pid);
 int block(int pid);
 int unblock(int pid);
 Process * getProcess(int pid);
+
+int startFirstProcess(void);
 
 #endif

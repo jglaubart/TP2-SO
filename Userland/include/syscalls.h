@@ -69,7 +69,7 @@ int32_t sys_memstats(int * total, int * used, int * available);
 /* 0x80000200 */
 int32_t sys_getpid(void);
 /* 0x80000201 */
-int32_t sys_create_process(void * function, uint8_t * argc, uint8_t ** argv);
+int32_t sys_create_process(void * function, uint64_t argc, uint8_t ** argv);
 /* 0x80000202 */
 int32_t sys_unblock(int pid);
 /* 0x80000203 */

@@ -130,6 +130,13 @@ Process * createProcess(void * function, int argc, char ** argv, int priority, i
     PCBTable->processes[pid] = process;
     PCBTable->processesCount++;
     PCBTable->current_pid = pid;
+
+    int added = addProcessToScheduler(process);
+    if (added != 0) {
+        freeProcess(process);
+        return NULL;
+    }
+    
     return process;
 }
 
@@ -177,7 +184,23 @@ int setProcessState(Process *process, int state){
     return 0;
 }
 
+// int startFirstProcess(void){
+//     char **argvShell = myMalloc(sizeof(char *));
+//     argvShell[0] = "init";
+//     Process * initProcess = createProcess(shellProcess, 0, argvShell, MID_PRIORITY, IDLE_PROCESS_PID);
 
+//     if (initProcess == NULL) {
+// 		return -1;
+// 	}
+
+    
+// }
+
+// static void shellProcess() {
+//     while (1) {
+//         // Aquí iría el código del shell
+//     }
+// }
 
 int block(int pid) {
     Process * process = getProcess(pid);
@@ -192,7 +215,7 @@ int block(int pid) {
     removeProcessFromScheduler(process);
 
     // interrupcion para hacer context switch
-    _force_timer_interrupt();
+    yield();
     return 0;
 
 }
@@ -212,7 +235,7 @@ int kill(int pid) {
 
     // interrupcion para hacer context switch
     if(process->state == PROCESS_STATE_RUNNING) {
-        _force_timer_interrupt();
+        yield();
     }
     
     process->state = PROCESS_STATE_TERMINATED;

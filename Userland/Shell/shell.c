@@ -42,6 +42,7 @@ int mem_stats(void);
 int _test_mm(void);
 int _test_processes(void);
 
+
 static void printPreviousCommand(enum REGISTERABLE_KEYS scancode);
 static void printNextCommand(enum REGISTERABLE_KEYS scancode);
 
@@ -75,6 +76,7 @@ Command commands[] = {
     { .name = "_test_processes",.function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management by creating, blocking and killing processes.\n\t\t\t\tUse: _test_processes <max_processes>" }
 };
 
+
 char command_history[HISTORY_SIZE][MAX_BUFFER_SIZE] = {0};
 char command_history_buffer[MAX_BUFFER_SIZE] = {0};
 uint8_t command_history_last = 0;
@@ -88,6 +90,7 @@ int main() {
     registerKey(KP_DOWN_KEY, printNextCommand);
 
     help();
+    
 	while (1) {
         printf("\e[0mshell \e[0;32m$\e[0m ");
 
@@ -427,10 +430,8 @@ int _test_processes(void){
     /* Launch the test as a separate process so the shell isn't disrupted
        if the test blocks/kills processes or runs indefinitely. */
     char * args[] = { max_proc_str };
-    /* createProcess userland wrapper has signature:
-       int32_t createProcess(void * function, uint8_t * argc, uint8_t ** argv);
-       We pass argc as (uint8_t*)1 (the syscall interprets it as integer). */
-    int32_t pid = createProcess((void *)test_processes, (uint8_t *)1, (uint8_t **)args);
+
+    int32_t pid = createProcess((void *)test_processes, 1, (char **)args);
 
     if (pid == -1) {
         perror("_test_processes: failed to create process\n");
@@ -440,4 +441,3 @@ int _test_processes(void){
     printf("_test_processes: started test as process %d\n", pid);
     return 0;
 }
-

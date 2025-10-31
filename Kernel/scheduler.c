@@ -12,6 +12,7 @@ static void validateScheduler(void);
 typedef struct scheduler {
     QueueADT readyQueue;
     Process * currentProcess;
+    Process * idleProcess;
 } Scheduler;
 
 static Scheduler *scheduler = NULL;
@@ -45,15 +46,15 @@ int initScheduler() {
         panic("Failed to create ready queue for scheduler.");
     }
 
-    Process *idleProcess = createProcess((void *)idleTask, 0, NULL, 0, -1);
+    Process *idleProcess = createProcess((void *)idleTask, 0, NULL, MIN_PRIORITY, -1);
     if (idleProcess == NULL) {
         panic("Failed to create idle process.");
     }
 
     idleProcess->name = "idle";
+    idleProcess->state = PROCESS_STATE_RUNNING;
     scheduler->currentProcess = idleProcess;
-
-    addProcessToScheduler(idleProcess);
+    scheduler->idleProcess = idleProcess;
 
     return 0;
 }
@@ -85,7 +86,7 @@ Process * getCurrentProcess() {
     return scheduler->currentProcess;
 }
 
-int addProcessToScheduler(Process *process) {
+int addProcessToScheduler(Process * process) {
     validateScheduler();
 
     if (process == NULL) {
@@ -117,6 +118,8 @@ int removeProcessFromScheduler(Process *process) {
 
     return 0;
 }
+
+void yield(void) { _force_timer_interrupt(); }
 
 static void idleTask(void) {
     while (1) {
