@@ -74,8 +74,9 @@ int main(){
 	initScheduler();
 	setFontSize(2);
 
-	char ** argv = myMalloc(sizeof(char *));
+	char ** argv = myMalloc(sizeof(char *) * 2);
 	argv[0] = "shell";
+	argv[1] = NULL;
 	createProcess(shellModuleAddress, 1, argv, MID_PRIORITY, 1);
 
 	// createProcess(processA, 0, NULL, MID_PRIORITY, -1);

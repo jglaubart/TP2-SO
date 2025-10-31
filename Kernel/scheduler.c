@@ -45,13 +45,15 @@ int initScheduler() {
     if (scheduler->readyQueue == NULL) {
         panic("Failed to create ready queue for scheduler.");
     }
-
-    Process *idleProcess = createProcess((void *)idleTask, 0, NULL, MIN_PRIORITY, -1);
+    char ** idleArgv = myMalloc(sizeof(char *) * 2);
+    idleArgv[0] = "idle";
+    idleArgv[1] = NULL;
+    Process *idleProcess = createProcess((void *)idleTask, 1, idleArgv, MIN_PRIORITY, -1);
     if (idleProcess == NULL) {
         panic("Failed to create idle process.");
     }
 
-    idleProcess->name = "idle";
+    int x = dequeue(scheduler->readyQueue, &idleProcess); // Ensure idle process is not in the ready queue
     idleProcess->state = PROCESS_STATE_RUNNING;
     scheduler->currentProcess = idleProcess;
     scheduler->idleProcess = idleProcess;
