@@ -2,6 +2,7 @@
 #include "panic.h"
 #include "interrupts.h"
 #include "queue.h"
+#include "process.h"
 
 static void idleTask(void);
 

@@ -66,7 +66,7 @@ static size_t find_free_blocks(size_t num_blocks_needed) {
 // ==================== FUNCIONES PÚBLICAS ====================
 
 // Inicializa el gestor de memoria
-void init_mm(void) {
+void initMemory(void) {
     // Limpia el bitmap (todos los bloques libres)
     for (size_t i = 0; i < NUM_BLOCKS / BITS_PER_BYTE; i++) {
         mm.bitmap[i] = 0;
@@ -146,7 +146,7 @@ void memstats(size_t *total, size_t *used, size_t *available) {
         *available = HEAP_SIZE - (mm.blocks_used * BLOCK_SIZE);
     }
 }
-int is_valid_heap_ptr(void *ptr) {
+int isValidHeapPtr(void *ptr) {
     if (ptr == NULL) {
         return 0;
     }

@@ -25,11 +25,9 @@ typedef struct Process {
     uint8_t * rsp;
 } Process;
 
-static Process PCBTable[MAX_PROCESSES];
-
 int getNextPid(void);
-
 Process * createProcess(uint8_t * function, int argc, char ** argv, int priority, int parentID);
 void freeProcess(Process * p);
+int initPCBTable();
 
 #endif

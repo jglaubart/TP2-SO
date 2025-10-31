@@ -153,13 +153,13 @@ static size_t count_available_bytes(const TreeNode *current) {
 }
 
 
-void init_mm(void) {
+void initMemory(void) {
     root_node = build_tree(0, MAX_BLOCK_ORDER, heap);
 }
 
 void * malloc(size_t size) {
     if (root_node == NULL) {
-        init_mm();
+        initMemory();
     }
 
     if (size == 0 || size > TOTAL_HEAP_SIZE) {
@@ -211,7 +211,7 @@ void free(void *ptr) {
 
 void memstats(size_t *total, size_t *used, size_t *available) {
     if (root_node == NULL) {
-        init_mm();
+        initMemory();
     }
     if (total != NULL) {
         *total = TOTAL_HEAP_SIZE;
@@ -226,7 +226,7 @@ void memstats(size_t *total, size_t *used, size_t *available) {
     }
 }
 
-int is_valid_heap_ptr(void *ptr) {
+int isValidHeapPtr(void *ptr) {
     if (ptr == NULL) {
         return 0;
     }

@@ -242,7 +242,7 @@ void * sys_malloc(size_t size) {
 }
 
 int32_t sys_free(void * ptr) {
-	if (!is_valid_heap_ptr(ptr)) {
+	if (!isValidHeapPtr(ptr)) {
 		return 0; // Return failure for invalid pointers
 	}
 	free(ptr);

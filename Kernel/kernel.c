@@ -53,12 +53,13 @@ void * initializeKernelBinary(){
 
 int main(){	
 	load_idt();
-	init_mm();
+	initMemory();
+	initPCBTable();
 	initScheduler();
 
-
-	_sti();
 	setFontSize(2);
+	_sti();
+	
 	
 	
 	((EntryPoint)shellModuleAddress)();
