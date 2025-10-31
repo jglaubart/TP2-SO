@@ -17,9 +17,9 @@ struct QueueCDT {
 };
 
 QueueADT createQueue(QueueElemCmpFn cmp, size_t elemSize) {
-	QueueADT queue = (QueueADT)malloc(sizeof(struct QueueCDT));
+	QueueADT queue = (QueueADT)myMalloc(sizeof(struct QueueCDT));
 	if (queue == NULL || elemSize == 0) {
-		free(queue);
+		myFree(queue);
 		return NULL;
 	}
 	queue->head = NULL;
@@ -36,15 +36,15 @@ QueueADT enqueue(QueueADT queue, void *data) {
 		return NULL;
 	}
 
-	struct Node *new = (struct Node *)malloc(sizeof(struct Node));
+	struct Node *new = (struct Node *)myMalloc(sizeof(struct Node));
 
 	if (new == NULL) {
 		return NULL;
 	}
 
-	new->data = malloc(queue->dataSize);
+	new->data = myMalloc(queue->dataSize);
 	if (new->data == NULL) {
-		free(new);
+		myFree(new);
 		return NULL;
 	}
 
@@ -82,8 +82,8 @@ void *dequeue(QueueADT queue, void *buffer) {
 	}
 
 	memcpy(buffer, temp->data, queue->dataSize);
-	free(temp->data);
-	free(temp);
+	myFree(temp->data);
+	myFree(temp);
 
 	queue->elemCount--;
 	return buffer;
@@ -118,8 +118,8 @@ void *queueRemove(QueueADT queue, void *data) {
 				queue->cyclicIter = current->next;
 			}
 
-			free(current->data);
-			free(current);
+			myFree(current->data);
+			myFree(current);
 			queue->elemCount--;
 			return data;
 		}
@@ -148,12 +148,12 @@ void queueFree(QueueADT queue) {
 
 	while (current != NULL) {
 		next = current->next;
-		free(current->data);
-		free(current);
+		myFree(current->data);
+		myFree(current);
 		current = next;
 	}
 
-	free(queue);
+	myFree(queue);
 }
 
 size_t queueSize(QueueADT queue) {
@@ -205,7 +205,7 @@ int queueIteratorIsInitialized(QueueADT queue) {
 
 int queueElementExists(QueueADT queue, void *data) {
 	int size = queueSize(queue);
-	void *buffer = malloc(queue->dataSize);
+	void *buffer = myMalloc(queue->dataSize);
 	
 	if (buffer == NULL) {
 		return 0;
@@ -220,6 +220,6 @@ int queueElementExists(QueueADT queue, void *data) {
 			found = 1;
 		}
 	}
-	free(buffer);
+	myFree(buffer);
 	return found;
 }

@@ -157,7 +157,7 @@ void initMemory(void) {
     root_node = build_tree(0, MAX_BLOCK_ORDER, heap);
 }
 
-void * malloc(size_t size) {
+void * myMalloc(size_t size) {
     if (root_node == NULL) {
         initMemory();
     }
@@ -188,7 +188,7 @@ void * malloc(size_t size) {
     return allocated_node->mem_addr + sizeof(AllocMetadata);
 }
 
-void free(void *ptr) {
+void myFree(void *ptr) {
     if (ptr == NULL) {
         return;
     }

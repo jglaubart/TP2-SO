@@ -5,9 +5,9 @@
 
 void initMemory(void);
 
-void * malloc(size_t size);
+void * myMalloc(size_t size);
 
-void free(void *ptr);
+void myFree(void *ptr);
 
 void memstats(size_t *total, size_t *used, size_t *available);
 

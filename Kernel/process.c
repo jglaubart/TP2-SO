@@ -18,7 +18,7 @@ int initPCBTable() {
 		return -1;	// PCB already initialized
 	}
 
-    PCBTable = malloc(sizeof(pcb_table));
+    PCBTable = myMalloc(sizeof(pcb_table));
     if (PCBTable == NULL) {
         panic("Failed to allocate memory for PCB Table");
         return -1; // Memory allocation failed 
@@ -64,14 +64,14 @@ Process * createProcess(uint8_t * function, int argc, char ** argv, int priority
     }
 
     // reservar espacio de stack para el proceso
-    uint8_t * stack_base = malloc(PROCESS_STACK_SIZE);
+    uint8_t * stack_base = myMalloc(PROCESS_STACK_SIZE);
     if (stack_base == NULL) {
         return NULL;
     }
 
-    Process * process = malloc(sizeof(Process));
+    Process * process = myMalloc(sizeof(Process));
     if (process == NULL) {
-        free(stack_base);
+        myFree(stack_base);
         return NULL;
     }
 
@@ -79,8 +79,8 @@ Process * createProcess(uint8_t * function, int argc, char ** argv, int priority
 
     uint8_t * initial_rsp = stackInit(stack_top, function, argc, argv);
     if (initial_rsp == NULL) {
-        free(stack_base);
-        free(process);
+        myFree(stack_base);
+        myFree(process);
         return NULL;
     }
 
@@ -96,24 +96,24 @@ Process * createProcess(uint8_t * function, int argc, char ** argv, int priority
 
     // copiar argumentos
     if (argc > 0) {
-		process->argv = (char **) malloc(sizeof(char *) * process->argc);
+		process->argv = (char **) myMalloc(sizeof(char *) * process->argc);
 		if (process->argv == NULL) {
-			free(process);
-            free(stack_base);
+			myFree(process);
+            myFree(stack_base);
 			return NULL;
 		}
 
         for (int i = 0; i < process->argc; i++) {
             int len = strlen(argv[i]);
-            process->argv[i] = (char *) malloc(sizeof(char) * (len + 1));
+            process->argv[i] = (char *) myMalloc(sizeof(char) * (len + 1));
             // si cualquier reserva falla, liberar todo lo reservado hasta el momento
             if (process->argv[i] == NULL) {
                 for (int j = 0; j < i; j++) {
-                    free(process->argv[j]);
+                    myFree(process->argv[j]);
                 }
-                free(process->argv);
-                free(process);
-                free(stack_base);
+                myFree(process->argv);
+                myFree(process);
+                myFree(stack_base);
                 return NULL;
             }
             strcpy(process->argv[i], argv[i]);
@@ -136,19 +136,58 @@ void freeProcess(Process * p){
         return;
     }
 
+    if (PCBTable != NULL && p->pid >= 0 && p->pid < MAX_PROCESSES && PCBTable->processes[p->pid] == p) {
+        // Eliminar proceso de la tabla (mantener contador coherente)
+        PCBTable->processes[p->pid] = NULL;
+        if (PCBTable->processesCount > 0) {
+            PCBTable->processesCount--;
+        }
+    }
+
+    p->state = PROCESS_STATE_TERMINATED;
+
     if (p->stack_base != NULL) {
-        free(p->stack_base);
+        myFree(p->stack_base);
         p->stack_base = NULL;
     }
 
     for (int i = 0; i < p->argc; i++) {
-		free(p->argv[i]);
-	}
-	free(p->argv);
-	free(p);
-
-    p->state = PROCESS_STATE_TERMINATED;
-    PCBTable->processesCount--;
+        myFree(p->argv[i]);
+    }
+    myFree(p->argv);
+    // Liberar memoria reservada para el proceso
+    myFree(p);
 }
 
 
+int getProcessState(Process *process){
+    if (process == NULL) {
+        return -1;
+    }
+    return process->state;
+}
+
+int setProcessState(Process *process, int state){
+    if (process == NULL) {
+        return -1;
+    }
+    process->state = state;
+    return 0;
+}
+
+
+
+int block(int pid) {
+    return 0;
+}
+
+int unblock(int pid) {
+    return 0;
+}
+
+Process * getProcess(int pid) {
+	if (PCBTable == NULL || pid < 0 || pid >= MAX_PROCESSES) {
+		return NULL;
+	}
+	return PCBTable->processes[pid];
+}

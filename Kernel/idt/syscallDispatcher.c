@@ -238,14 +238,14 @@ int32_t sys_get_character_without_display(void) {
 // ==================================================================
 
 void * sys_malloc(size_t size) {
-	return malloc(size);
+	return myMalloc(size);
 }
 
 int32_t sys_free(void * ptr) {
 	if (!isValidHeapPtr(ptr)) {
 		return 0; // Return failure for invalid pointers
 	}
-	free(ptr);
+	myFree(ptr);
 	return 1; // Return success
 }
 

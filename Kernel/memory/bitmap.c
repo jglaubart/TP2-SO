@@ -80,7 +80,7 @@ void initMemory(void) {
 }
 
 // Reserva memoria
-void * malloc(size_t size) {
+void * myMalloc(size_t size) {
     if (size == 0) {
         return NULL;
     }
@@ -107,7 +107,7 @@ void * malloc(size_t size) {
 }
 
 // Libera memoria
-void free(void *ptr) {
+void myFree(void *ptr) {
         if (ptr == NULL) {
         return;
     }
@@ -164,7 +164,7 @@ int isValidHeapPtr(void *ptr) {
     size_t offset = ptr_byte - heap_start;
     
     // Check if the pointer is aligned to a block boundary
-    // (malloc only returns pointers at block boundaries)
+    // (myMalloc only returns pointers at block boundaries)
     if (offset % BLOCK_SIZE != 0) {
         return 0;
     }

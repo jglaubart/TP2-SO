@@ -34,7 +34,7 @@ int initScheduler() {
         return -1;	// scheduler already initialized
     }
 
-    scheduler = malloc(sizeof(Scheduler));
+    scheduler = myMalloc(sizeof(Scheduler));
     if (scheduler == NULL) {
         panic("Failed to allocate memory for Scheduler.");
     }
