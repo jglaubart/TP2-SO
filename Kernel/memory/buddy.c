@@ -33,8 +33,8 @@ static TreeNode *root_node = NULL;
 
 
 // FUNCIONES AUXILIARES 
-static size_t get_block_size(int order) {
-    return (size_t)1u << order;
+static int get_block_size(int order) {
+    return (int)1u << order;
 }
 static TreeNode *build_tree(int idx, int order, uint8_t *mem_base) {
     TreeNode *current = &tree_nodes[idx];
@@ -48,7 +48,7 @@ static TreeNode *build_tree(int idx, int order, uint8_t *mem_base) {
     if (order > MIN_BLOCK_ORDER) {
         int left_idx = (idx * 2) + 1;
         int right_idx = left_idx + 1;
-        size_t half_size = get_block_size(order - 1);
+        int half_size = get_block_size(order - 1);
 
         TreeNode *left_node = build_tree(left_idx, order - 1, mem_base);
         TreeNode *right_node = build_tree(right_idx, order - 1, mem_base + half_size);
@@ -63,7 +63,7 @@ static TreeNode *build_tree(int idx, int order, uint8_t *mem_base) {
 }
 
 
-static int calculate_order(size_t size) {
+static int calculate_order(int size) {
     int order = MIN_BLOCK_ORDER;
 
     while (order <= MAX_BLOCK_ORDER && get_block_size(order) < size) {
@@ -136,7 +136,7 @@ static void merge_upwards(TreeNode *current) {
 }
 
 
-static size_t count_available_bytes(const TreeNode *current) {
+static int count_available_bytes(const TreeNode *current) {
     if (current == NULL) {
         return 0;
     }
@@ -157,7 +157,7 @@ void initMemory(void) {
     root_node = build_tree(0, MAX_BLOCK_ORDER, heap);
 }
 
-void * myMalloc(size_t size) {
+void * myMalloc(int size) {
     if (root_node == NULL) {
         initMemory();
     }
@@ -170,7 +170,7 @@ void * myMalloc(size_t size) {
         return NULL;
     }
 
-    size_t total_needed = size + sizeof(AllocMetadata);
+    int total_needed = size + sizeof(AllocMetadata);
     int order = calculate_order(total_needed);
 
     if (order > MAX_BLOCK_ORDER) {
@@ -209,14 +209,14 @@ void myFree(void *ptr) {
     merge_upwards(node_to_free->parent_node);
 }
 
-void memstats(size_t *total, size_t *used, size_t *available) {
+void memstats(int *total, int *used, int *available) {
     if (root_node == NULL) {
         initMemory();
     }
     if (total != NULL) {
         *total = TOTAL_HEAP_SIZE;
     }
-    size_t available_total = count_available_bytes(root_node);
+    int available_total = count_available_bytes(root_node);
 
     if (available != NULL) {
         *available = available_total;

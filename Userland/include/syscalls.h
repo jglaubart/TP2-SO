@@ -59,10 +59,23 @@ int32_t sys_get_character_without_display(void);
 
 // Memory management syscall prototypes
 /* 0x80000100 */
-void * sys_malloc(size_t size);
+void * sys_malloc(int size);
 /* 0x80000101 */
 int32_t sys_free(void * ptr);
 /* 0x80000102 */
-int32_t sys_memstats(size_t * total, size_t * used, size_t * available);
+int32_t sys_memstats(int * total, int * used, int * available);
+
+// Process management syscall prototypes
+/* 0x80000200 */
+int32_t sys_getpid(void);
+/* 0x80000201 */
+int32_t sys_create_process(void * function, uint8_t * argc, uint8_t ** argv);
+/* 0x80000202 */
+int32_t sys_unblock(int pid);
+/* 0x80000203 */
+int32_t sys_block(int pid);
+/* 0x80000204 */
+int32_t sys_kill(int pid);
+
 
 #endif

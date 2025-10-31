@@ -11,7 +11,7 @@
 typedef struct {
     uint8_t bitmap[NUM_BLOCKS / BITS_PER_BYTE];  // Cada bit representa un bloque (1=usado, 0=libre)
     uint8_t heap[HEAP_SIZE];                      // El heap real donde se almacena la memoria
-    size_t blocks_used;                           // Cantidad de bloques en uso
+    int blocks_used;                           // Cantidad de bloques en uso
 } MemoryManager;
 
 // Instancia global del gestor de memoria
@@ -20,32 +20,32 @@ static MemoryManager mm;
 // ==================== FUNCIONES AUXILIARES ====================
 
 // Verifica si un bloque está ocupado
-static int is_block_used(size_t block_index) {
-    size_t byte_index = block_index / BITS_PER_BYTE;
-    size_t bit_index = block_index % BITS_PER_BYTE;
+static int is_block_used(int block_index) {
+    int byte_index = block_index / BITS_PER_BYTE;
+    int bit_index = block_index % BITS_PER_BYTE;
     return (mm.bitmap[byte_index] >> bit_index) & 1;
 }
 
 // Marca un bloque como usado
-static void mark_block_used(size_t block_index) {
-    size_t byte_index = block_index / BITS_PER_BYTE;
-    size_t bit_index = block_index % BITS_PER_BYTE;
+static void mark_block_used(int block_index) {
+    int byte_index = block_index / BITS_PER_BYTE;
+    int bit_index = block_index % BITS_PER_BYTE;
     mm.bitmap[byte_index] |= (1 << bit_index);
 }
 
 // Marca un bloque como libre
-static void mark_block_free(size_t block_index) {
-    size_t byte_index = block_index / BITS_PER_BYTE;
-    size_t bit_index = block_index % BITS_PER_BYTE;
+static void mark_block_free(int block_index) {
+    int byte_index = block_index / BITS_PER_BYTE;
+    int bit_index = block_index % BITS_PER_BYTE;
     mm.bitmap[byte_index] &= ~(1 << bit_index);
 }
 
 // Encuentra bloques contiguos libres
-static size_t find_free_blocks(size_t num_blocks_needed) {
-    size_t consecutive_free = 0;
-    size_t start_block = 0;
+static int find_free_blocks(int num_blocks_needed) {
+    int consecutive_free = 0;
+    int start_block = 0;
     
-    for (size_t i = 0; i < NUM_BLOCKS; i++) {
+    for (int i = 0; i < NUM_BLOCKS; i++) {
         if (!is_block_used(i)) {
             if (consecutive_free == 0) {
                 start_block = i;
@@ -68,35 +68,35 @@ static size_t find_free_blocks(size_t num_blocks_needed) {
 // Inicializa el gestor de memoria
 void initMemory(void) {
     // Limpia el bitmap (todos los bloques libres)
-    for (size_t i = 0; i < NUM_BLOCKS / BITS_PER_BYTE; i++) {
+    for (int i = 0; i < NUM_BLOCKS / BITS_PER_BYTE; i++) {
         mm.bitmap[i] = 0;
     }
     
     // Limpia el heap
-    for (size_t i = 0; i < HEAP_SIZE; i++) {
+    for (int i = 0; i < HEAP_SIZE; i++) {
         mm.heap[i] = 0;
     }
     mm.blocks_used = 0;
 }
 
 // Reserva memoria
-void * myMalloc(size_t size) {
+void * myMalloc(int size) {
     if (size == 0) {
         return NULL;
     }
     
     // Calcula cuántos bloques se necesitan
-    size_t blocks_needed = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    int blocks_needed = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
     
     // Busca bloques contiguos libres
-    size_t start_block = find_free_blocks(blocks_needed);
+    int start_block = find_free_blocks(blocks_needed);
     
     if (start_block == NUM_BLOCKS) {
         return NULL;  // No hay memoria suficiente
     }
     
     // Marca los bloques como usados
-    for (size_t i = 0; i < blocks_needed; i++) {
+    for (int i = 0; i < blocks_needed; i++) {
         mark_block_used(start_block + i);
     }
     
@@ -114,8 +114,8 @@ void myFree(void *ptr) {
     
     // Calcula el índice del bloque inicial
     uint8_t *heap_start = mm.heap;
-    size_t offset = (uint8_t *)ptr - heap_start;
-    size_t start_block = offset / BLOCK_SIZE;
+    int offset = (uint8_t *)ptr - heap_start;
+    int start_block = offset / BLOCK_SIZE;
     
     // Verifica que el puntero sea válido
     if (start_block >= NUM_BLOCKS) {
@@ -123,8 +123,8 @@ void myFree(void *ptr) {
     }
     
     // Libera bloques contiguos hasta encontrar uno libre
-    size_t blocks_freed = 0;
-    for (size_t i = start_block; i < NUM_BLOCKS && is_block_used(i); i++) {
+    int blocks_freed = 0;
+    for (int i = start_block; i < NUM_BLOCKS && is_block_used(i); i++) {
         mark_block_free(i);
         blocks_freed++;
     }
@@ -133,7 +133,7 @@ void myFree(void *ptr) {
 }
 
 // Obtiene estadísticas de memoria
-void memstats(size_t *total, size_t *used, size_t *available) {
+void memstats(int *total, int *used, int *available) {
     if (total != NULL) {
         *total = HEAP_SIZE;
     }
@@ -161,7 +161,7 @@ int isValidHeapPtr(void *ptr) {
     }
     
     // Calculate the offset from the heap start
-    size_t offset = ptr_byte - heap_start;
+    int offset = ptr_byte - heap_start;
     
     // Check if the pointer is aligned to a block boundary
     // (myMalloc only returns pointers at block boundaries)
@@ -170,7 +170,7 @@ int isValidHeapPtr(void *ptr) {
     }
     
     // Calculate the block index
-    size_t block_index = offset / BLOCK_SIZE;
+    int block_index = offset / BLOCK_SIZE;
     
     // Verify the block is actually marked as used
     if (!is_block_used(block_index)) {

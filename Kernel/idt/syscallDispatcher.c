@@ -7,6 +7,9 @@
 #include <video.h>
 #include <time.h>
 #include <memory.h>
+#include <process.h>
+#include <scheduler.h>
+
 
 extern int64_t register_snapshot[18];
 extern int64_t register_snapshot_taken;
@@ -55,7 +58,13 @@ int32_t syscallDispatcher(Registers * registers) {
 
 		case 0x80000100: return (int64_t) sys_malloc(registers->rdi);
 		case 0x80000101: return sys_free((void *) registers->rdi);
-		case 0x80000102: return sys_memstats((size_t *) registers->rdi, (size_t *) registers->rsi, (size_t *) registers->rdx);
+		case 0x80000102: return sys_memstats((int *) registers->rdi, (int *) registers->rsi, (int *) registers->rdx);
+
+		case 0x80000200: return sys_getpid();
+		case 0x80000201: return sys_create_process((uint8_t *) registers->rdi, registers->rsi, (char **) registers->rdx);
+		case 0x80000202: return sys_unblock((int) registers->rdi);
+		case 0x80000203: return sys_block((int) registers->rdi);
+		case 0x80000204: return sys_kill((int) registers->rdi);
 		
 		default:
             return 0;
@@ -237,7 +246,7 @@ int32_t sys_get_character_without_display(void) {
 // Memory management system calls
 // ==================================================================
 
-void * sys_malloc(size_t size) {
+void * sys_malloc(int size) {
 	return myMalloc(size);
 }
 
@@ -249,7 +258,43 @@ int32_t sys_free(void * ptr) {
 	return 1; // Return success
 }
 
-int32_t sys_memstats(size_t * total, size_t * used, size_t * available) {
+int32_t sys_memstats(int * total, int * used, int * available) {
 	memstats(total, used, available);
 	return 0;
+}
+
+// ==================================================================
+// Process management system calls
+// ==================================================================
+
+int32_t sys_getpid(void) {
+	Process * currentProcess = getCurrentProcess();
+	if (currentProcess == NULL) {
+		return -1; // Indicate failure to get PID
+	}
+	return currentProcess->pid;
+}
+int32_t sys_create_process(void * function, int argc, char ** argv) {
+	Process * newProcess = createProcess(function, argc, argv, 1, -1);
+	if (newProcess == NULL) {
+		return -1; // Indicate failure to create process
+	}
+
+	if (addProcessToScheduler(newProcess) != 0) {
+		return -1; // Indicate failure to add process to scheduler
+	}
+
+	return newProcess->pid; // Return the PID of the newly created process
+}
+
+int32_t sys_unblock(int pid) {
+	return unblock(pid);
+}
+
+int32_t sys_block(int pid) {
+	return block(pid);
+}
+
+int32_t sys_kill(int pid) {
+	return kill(pid);
 }

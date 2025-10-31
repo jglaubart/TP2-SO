@@ -11,12 +11,12 @@ struct QueueCDT {
 	struct Node *head;
 	struct Node *tail;
 	struct Node *cyclicIter;
-	size_t dataSize;
-	size_t elemCount;
+	int dataSize;
+	int elemCount;
 	QueueElemCmpFn cmp;
 };
 
-QueueADT createQueue(QueueElemCmpFn cmp, size_t elemSize) {
+QueueADT createQueue(QueueElemCmpFn cmp, int elemSize) {
 	QueueADT queue = (QueueADT)myMalloc(sizeof(struct QueueCDT));
 	if (queue == NULL || elemSize == 0) {
 		myFree(queue);
@@ -156,7 +156,7 @@ void queueFree(QueueADT queue) {
 	myFree(queue);
 }
 
-size_t queueSize(QueueADT queue) {
+int queueSize(QueueADT queue) {
 	if (queue == NULL) {
 		return 0;
 	}

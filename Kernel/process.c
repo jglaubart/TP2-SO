@@ -46,7 +46,7 @@ int getNextPid(void) {
     int start = PCBTable->current_pid + 1;
     for (int i = 0; i < MAX_PROCESSES; i++) {
         int pid = (start + i) % MAX_PROCESSES;
-        if (PCBTable->processes[pid]->stack_base == 0 || PCBTable->processes[pid]->state == PROCESS_STATE_TERMINATED) {
+        if (PCBTable->processes[pid] == NULL || PCBTable->processes[pid]->stack_base == 0 || PCBTable->processes[pid]->state == PROCESS_STATE_TERMINATED) {
             return pid;
         }
     }
@@ -54,7 +54,7 @@ int getNextPid(void) {
 }
 
 
-Process * createProcess(uint8_t * function, int argc, char ** argv, int priority, int parentID){
+Process * createProcess(void * function, int argc, char ** argv, int priority, int parentID){
     // validaciones iniciales
     if(function == NULL || argc < 0 || priority < 0){
         return NULL;
@@ -198,6 +198,11 @@ int block(int pid) {
 }
 
 int kill(int pid) {
+    /* Protect critical system processes (idle=0 and shell/init=1) from being killed
+       by arbitrary user processes to avoid freeing their stacks while they run. */
+    if (pid == 0 || pid == 1) {
+        return -1;
+    }
     Process * process = getProcess(pid);
     if (process == NULL) {
         return -1;

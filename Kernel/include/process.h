@@ -26,7 +26,7 @@ typedef struct Process {
 } Process;
 
 int getNextPid(void);
-Process * createProcess(uint8_t * function, int argc, char ** argv, int priority, int parentID);
+Process * createProcess(void * function, int argc, char ** argv, int priority, int parentID);
 void freeProcess(Process * p);
 int initPCBTable();
 

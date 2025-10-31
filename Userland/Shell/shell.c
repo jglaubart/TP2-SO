@@ -40,6 +40,7 @@ int mem_test_malloc(void);
 int mem_test_free(void);
 int mem_stats(void);
 int _test_mm(void);
+int _test_processes(void);
 
 static void printPreviousCommand(enum REGISTERABLE_KEYS scancode);
 static void printNextCommand(enum REGISTERABLE_KEYS scancode);
@@ -70,7 +71,8 @@ Command commands[] = {
     { .name = "malloc",         .function = (int (*)(void))(unsigned long long)mem_test_malloc, .description = "Allocates memory and prints the address.\n\t\t\t\tUse: malloc <size_in_bytes>" },
     { .name = "memstats",       .function = (int (*)(void))(unsigned long long)mem_stats,       .description = "Displays memory statistics (total, used, available)" },
     { .name = "free",           .function = (int (*)(void))(unsigned long long)mem_test_free,   .description = "Frees a previously allocated memory block.\n\t\t\t\tUse: free <address_in_hex>" },
-    { .name = "_test_mm",       .function = (int (*)(void))(unsigned long long)_test_mm,        .description = "Tests the memory manager by allocating and freeing memory.\n\t\t\t\tUse: _test_mm <max_memory>" }
+    { .name = "_test_mm",       .function = (int (*)(void))(unsigned long long)_test_mm,        .description = "Tests the memory manager by allocating and freeing memory.\n\t\t\t\tUse: _test_mm <max_memory>" },
+    { .name = "_test_processes",.function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management by creating, blocking and killing processes.\n\t\t\t\tUse: _test_processes <max_processes>" }
 };
 
 char command_history[HISTORY_SIZE][MAX_BUFFER_SIZE] = {0};
@@ -305,7 +307,7 @@ int mem_test_malloc(void) {
         return 1;
     }
     
-    size_t size = 0;
+    int size = 0;
     sscanf(size_str, "%d", &size);
     
     if (size == 0) {
@@ -388,7 +390,7 @@ int mem_test_free(void) {
 }
 
 int mem_stats(void) {
-    size_t total = 0, used = 0, available = 0;
+    int total = 0, used = 0, available = 0;
     
     sys_memstats(&total, &used, &available);
     
@@ -412,5 +414,30 @@ int _test_mm(void){ //MODIFICAR, hasta ahora se lanza como funcion, al implement
     char * args[] = { size_str };
     uint64_t result = test_mm(1, args);
     return (int)result;
+}
+
+int _test_processes(void){
+    char * max_proc_str = strtok(NULL, " ");
+
+    if (max_proc_str == NULL || strtok(NULL, " ") != NULL) {
+        perror("Usage: _test_processes <max_processes>\n");
+        return 1;
+    }
+
+    /* Launch the test as a separate process so the shell isn't disrupted
+       if the test blocks/kills processes or runs indefinitely. */
+    char * args[] = { max_proc_str };
+    /* createProcess userland wrapper has signature:
+       int32_t createProcess(void * function, uint8_t * argc, uint8_t ** argv);
+       We pass argc as (uint8_t*)1 (the syscall interprets it as integer). */
+    int32_t pid = createProcess((void *)test_processes, (uint8_t *)1, (uint8_t **)args);
+
+    if (pid == -1) {
+        perror("_test_processes: failed to create process\n");
+        return 1;
+    }
+
+    printf("_test_processes: started test as process %d\n", pid);
+    return 0;
 }
 

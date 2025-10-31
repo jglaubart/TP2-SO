@@ -70,9 +70,15 @@ int32_t sys_get_register_snapshot(int64_t * registers);
 int32_t sys_get_character_without_display(void);
 
 // Memory management syscalls
-void * sys_malloc(size_t size);
+void * sys_malloc(int size);
 int32_t sys_free(void * ptr);
-int32_t sys_memstats(size_t * total, size_t * used, size_t * available);
+int32_t sys_memstats(int * total, int * used, int * available);
+
+int32_t sys_getpid(void);
+int32_t sys_create_process(void * function, int argc, char ** argv);
+int32_t sys_unblock(int pid);
+int32_t sys_block(int pid);
+int32_t sys_kill(int pid);
 
 
 #endif

@@ -5,11 +5,11 @@
 
 void initMemory(void);
 
-void * myMalloc(size_t size);
+void * myMalloc(int size);
 
 void myFree(void *ptr);
 
-void memstats(size_t *total, size_t *used, size_t *available);
+void memstats(int *total, int *used, int *available);
 
 int isValidHeapPtr(void *ptr);
 

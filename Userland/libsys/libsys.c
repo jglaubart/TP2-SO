@@ -83,3 +83,39 @@ int32_t getRegisterSnapshot(int64_t * registers) {
 int32_t getCharacterWithoutDisplay(void) {
     return sys_get_character_without_display();
 }
+
+// Memory management syscall prototypes
+/* 0x80000100 */
+void * myMalloc(int size){
+    return sys_malloc(size);
+}
+/* 0x80000101 */
+int32_t myFree(void * ptr){
+    return sys_free(ptr);
+}
+/* 0x80000102 */
+int32_t memstats(int * total, int * used, int * available){
+    return sys_memstats(total, used, available) ;
+}
+
+// Process management syscall prototypes
+/* 0x80000200 */
+int32_t getPid(void){
+    return sys_getpid();
+}
+/* 0x80000201 */
+int32_t createProcess(void * function, uint8_t * argc, uint8_t ** argv){
+    return sys_create_process(function, argc, argv);
+}
+/* 0x80000202 */
+int32_t unblock(int pid){
+    return sys_unblock(pid);
+}
+/* 0x80000203 */
+int32_t block(int pid){
+    return sys_block(pid);
+}
+/* 0x80000204 */
+int32_t kill(int pid){
+    return sys_kill(pid);
+}

@@ -33,6 +33,11 @@ GLOBAL sys_malloc
 GLOBAL sys_free
 GLOBAL sys_memstats
 
+GLOBAL sys_getpid
+GLOBAL sys_create_process
+GLOBAL sys_unblock
+GLOBAL sys_block
+GLOBAL sys_kill
 section .text
 
 %macro sys_int80 1
@@ -83,3 +88,9 @@ sys_get_character_without_display: sys_int80 0x800000F0
 sys_malloc: sys_int80 0x80000100
 sys_free: sys_int80 0x80000101
 sys_memstats: sys_int80 0x80000102
+
+sys_getpid: sys_int80 0x80000200
+sys_create_process: sys_int80 0x80000201
+sys_unblock: sys_int80 0x80000202
+sys_block: sys_int80 0x80000203
+sys_kill: sys_int80 0x80000204

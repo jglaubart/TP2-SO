@@ -45,7 +45,7 @@ int initScheduler() {
         panic("Failed to create ready queue for scheduler.");
     }
 
-    Process *idleProcess = createProcess((uint8_t *)idleTask, 0, NULL, 0, -1);
+    Process *idleProcess = createProcess((void *)idleTask, 0, NULL, 0, -1);
     if (idleProcess == NULL) {
         panic("Failed to create idle process.");
     }
@@ -78,6 +78,11 @@ uint8_t *schedule(uint8_t *rsp) {
     scheduler->currentProcess = nextProcess;
 
     return scheduler->currentProcess->rsp;
+}
+
+Process * getCurrentProcess() {
+    validateScheduler();
+    return scheduler->currentProcess;
 }
 
 int addProcessToScheduler(Process *process) {

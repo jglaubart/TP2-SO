@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdint.h>
+#include <stddef.h>
 
 // Enum of registerable keys.
 // Note: Does not include TAB or RETURN
@@ -117,5 +118,15 @@ int getWindowHeight(void);
 void sleep(uint32_t milliseconds);
 int32_t getRegisterSnapshot(int64_t * registers);
 int32_t getCharacterWithoutDisplay(void);
+
+void * myMalloc(int size);
+int32_t myFree(void * ptr);
+int32_t memstats(int * total, int * used, int * available);
+
+int32_t getPid(void);
+int32_t createProcess(void * function, uint8_t * argc, uint8_t ** argv);
+int32_t unblock(int pid);
+int32_t block(int pid);
+int32_t kill(int pid);
 
 #endif
