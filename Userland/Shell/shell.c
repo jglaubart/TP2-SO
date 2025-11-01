@@ -415,8 +415,8 @@ int _test_mm(void){ //MODIFICAR, hasta ahora se lanza como funcion, al implement
     }
 
     char * args[] = { size_str };
-    uint64_t result = test_mm(1, args);
-    return (int)result;
+    int32_t pid = createProcess((void *)test_mm, 1, (char **)args);
+    return (int)pid;
 }
 
 int _test_processes(void){

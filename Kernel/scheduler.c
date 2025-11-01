@@ -54,7 +54,7 @@ int initScheduler() {
         panic("Failed to create idle process.");
     }
 
-    int x = dequeue(scheduler->readyQueue, &idleProcess); // Ensure idle process is not in the ready queue
+    dequeue(scheduler->readyQueue, &idleProcess); // Ensure idle process is not in the ready queue
     idleProcess->state = PROCESS_STATE_RUNNING;
     scheduler->currentProcess = idleProcess;
     scheduler->idleProcess = idleProcess;
