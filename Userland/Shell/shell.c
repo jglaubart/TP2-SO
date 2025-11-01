@@ -40,6 +40,7 @@ int mem_test_malloc(void);
 int mem_test_free(void);
 int mem_stats(void);
 int _test_mm(void);
+int shell_kill(void);
 int _test_processes(void);
 
 
@@ -73,13 +74,14 @@ Command commands[] = {
     { .name = "memstats",       .function = (int (*)(void))(unsigned long long)mem_stats,       .description = "Displays memory statistics (total, used, available)" },
     { .name = "free",           .function = (int (*)(void))(unsigned long long)mem_test_free,   .description = "Frees a previously allocated memory block.\n\t\t\t\tUse: free <address_in_hex>" },
     { .name = "test_mm",       .function = (int (*)(void))(unsigned long long)_test_mm,        .description = "Tests the memory manager by allocating and freeing memory.\n\t\t\t\tUse: _test_mm <max_memory>" },
-    { .name = "test_processes",.function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management by creating, blocking and killing processes.\n\t\t\t\tUse: _test_processes <max_processes>" }
+    { .name = "kill",           .function = (int (*)(void))(unsigned long long)shell_kill,       .description = "Sends a kill signal to the target process.\n\t\t\t\tUse: kill <pid>" },
+    { .name = "test_processes", .function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management by creating, blocking and killing processes.\n\t\t\t\tUse: _test_processes <max_processes>" }
 };
 
 static void printCommandInfo(const char *name) {
     for (size_t i = 0; i < sizeof(commands) / sizeof(Command); i++) {
         if (strcmp(commands[i].name, name) == 0) {
-            printf("%s%s\t ---\t%s\n", commands[i].name, strlen(commands[i].name) < 4 ? "\t" : "", commands[i].description);
+            printf("* %s%s\t ---\t%s\n", commands[i].name, strlen(commands[i].name) < 4 ? "\t" : "", commands[i].description);
             return;
         }
     }
@@ -239,27 +241,49 @@ int help(void){
         "malloc", "free", "memstats", "test_mm"
     };
     static const char *process_commands[] = {
-        "test_processes"
+        "kill", "test_processes"
     };
 
-    printf("Available commands:\n");
+    printf("Available commands:\n\n");
 
-    printf("\nBasicos:\n");
     for (size_t i = 0; i < sizeof(basic_commands) / sizeof(char *); i++) {
         printCommandInfo(basic_commands[i]);
     }
 
-    printf("\nMemoria:\n");
+    printf("\n========================= Memory =========================\n");
     for (size_t i = 0; i < sizeof(memory_commands) / sizeof(char *); i++) {
         printCommandInfo(memory_commands[i]);
     }
 
-    printf("\nProcesos:\n");
+    printf("\n======================== Processes =========================\n");
     for (size_t i = 0; i < sizeof(process_commands) / sizeof(char *); i++) {
         printCommandInfo(process_commands[i]);
     }
 
     printf("\n");
+    return 0;
+}
+
+int shell_kill(void){
+    char * pid_str = strtok(NULL, " ");
+    if (pid_str == NULL) {
+        fprintf(FD_STDERR, "Usage: kill <pid>\n");
+        return 1;
+    }
+
+    int pid = 0;
+    if (sscanf(pid_str, "%d", &pid) != 1) {
+        fprintf(FD_STDERR, "kill: invalid pid '%s'\n", pid_str);
+        return 1;
+    }
+
+    int32_t result = kill(pid);
+    if (result != 0) {
+        perror(FD_STDERR, "kill: unable to terminate pid %d\n", pid);
+        return 1;
+    }
+
+    printf("kill: terminated pid %d\n", pid);
     return 0;
 }
 
