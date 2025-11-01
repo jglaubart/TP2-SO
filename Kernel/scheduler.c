@@ -19,16 +19,27 @@ typedef struct scheduler {
 static Scheduler *scheduler = NULL;
 
 static int compareProcessPriority(void *a, void *b) {
-    Process *procA = (Process *)a;
-	Process *procB = (Process *)b;
+    Process *procA = (a == NULL) ? NULL : *(Process **)a;
+    Process *procB = (b == NULL) ? NULL : *(Process **)b;
+
+    if (procA == procB) {
+        return 0;
+    }
+
+    if (procA == NULL) {
+        return -1;
+    }
+    if (procB == NULL) {
+        return 1;
+    }
 
     if (procA->priority > procB->priority) {
-		return 1;
-	} else if (procA->priority < procB->priority) {
-		return -1;
-	} else {
-		return 0;
-	}
+        return 1;
+    } else if (procA->priority < procB->priority) {
+        return -1;
+    } else {
+        return (procA > procB) - (procA < procB);
+    }
 }
 
 int initScheduler() {

@@ -20,14 +20,14 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
 
   if (argc != 1)
     return -1;
-
+  
   if ((max_processes = satoi(argv[0])) <= 0)
     return -1;
 
   p_rq p_rqs[max_processes];
+  
 
   while (1) {
-
     // Create max_processes processes
     for (rq = 0; rq < max_processes; rq++) {
       p_rqs[rq].pid = createProcess(endless_loop, 0, argvAux);
@@ -36,7 +36,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
         printf("test_processes: ERROR creating process\n");
         return -1;
       } else {
-        printf("test_processes: created process %d\n", p_rqs[rq].pid);
+        //printf("test_processes: created process %d\n", p_rqs[rq].pid); //Debug line
         p_rqs[rq].state = RUNNING;
         alive++;
       }
@@ -55,7 +55,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
                 printf("test_processes: ERROR killing process\n");
                 return -1;
               }
-              printf("test_processes: killed process %d\n", p_rqs[rq].pid);
+              //printf("test_processes: killed process %d\n", p_rqs[rq].pid); //Debug line
               p_rqs[rq].state = KILLED;
               alive--;
             }
@@ -67,7 +67,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
                 printf("test_processes: ERROR blocking process\n");
                 return -1;
               }
-              printf("test_processes: blocked process %d\n", p_rqs[rq].pid);
+              //printf("test_processes: blocked process %d\n", p_rqs[rq].pid); //Debug line
               p_rqs[rq].state = BLOCKED;
             }
             break;

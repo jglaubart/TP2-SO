@@ -72,9 +72,18 @@ Command commands[] = {
     { .name = "malloc",         .function = (int (*)(void))(unsigned long long)mem_test_malloc, .description = "Allocates memory and prints the address.\n\t\t\t\tUse: malloc <size_in_bytes>" },
     { .name = "memstats",       .function = (int (*)(void))(unsigned long long)mem_stats,       .description = "Displays memory statistics (total, used, available)" },
     { .name = "free",           .function = (int (*)(void))(unsigned long long)mem_test_free,   .description = "Frees a previously allocated memory block.\n\t\t\t\tUse: free <address_in_hex>" },
-    { .name = "_test_mm",       .function = (int (*)(void))(unsigned long long)_test_mm,        .description = "Tests the memory manager by allocating and freeing memory.\n\t\t\t\tUse: _test_mm <max_memory>" },
-    { .name = "_test_processes",.function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management by creating, blocking and killing processes.\n\t\t\t\tUse: _test_processes <max_processes>" }
+    { .name = "test_mm",       .function = (int (*)(void))(unsigned long long)_test_mm,        .description = "Tests the memory manager by allocating and freeing memory.\n\t\t\t\tUse: _test_mm <max_memory>" },
+    { .name = "test_processes",.function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management by creating, blocking and killing processes.\n\t\t\t\tUse: _test_processes <max_processes>" }
 };
+
+static void printCommandInfo(const char *name) {
+    for (size_t i = 0; i < sizeof(commands) / sizeof(Command); i++) {
+        if (strcmp(commands[i].name, name) == 0) {
+            printf("%s%s\t ---\t%s\n", commands[i].name, strlen(commands[i].name) < 4 ? "\t" : "", commands[i].description);
+            return;
+        }
+    }
+}
 
 
 char command_history[HISTORY_SIZE][MAX_BUFFER_SIZE] = {0};
@@ -223,11 +232,33 @@ int echo(void){
 }
 
 int help(void){
+    static const char *basic_commands[] = {
+        "clear", "divzero", "echo", "exit", "font", "help", "history", "invop", "man", "regs", "snake", "time"
+    };
+    static const char *memory_commands[] = {
+        "malloc", "free", "memstats", "test_mm"
+    };
+    static const char *process_commands[] = {
+        "test_processes"
+    };
+
     printf("Available commands:\n");
-    for (int i = 0; i < sizeof(commands) / sizeof(Command); i++) {
-        if(strcmp(commands[i].name, "malloc")==0) printf("\n\n");
-        printf("%s%s\t ---\t%s\n", commands[i].name, strlen(commands[i].name) < 4 ? "\t" : "", commands[i].description);
+
+    printf("\nBasicos:\n");
+    for (size_t i = 0; i < sizeof(basic_commands) / sizeof(char *); i++) {
+        printCommandInfo(basic_commands[i]);
     }
+
+    printf("\nMemoria:\n");
+    for (size_t i = 0; i < sizeof(memory_commands) / sizeof(char *); i++) {
+        printCommandInfo(memory_commands[i]);
+    }
+
+    printf("\nProcesos:\n");
+    for (size_t i = 0; i < sizeof(process_commands) / sizeof(char *); i++) {
+        printCommandInfo(process_commands[i]);
+    }
+
     printf("\n");
     return 0;
 }

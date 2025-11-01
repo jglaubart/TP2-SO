@@ -79,33 +79,25 @@ Process * createProcess(void * function, int argc, char ** argv, int priority, i
 
     uint8_t * stack_top = stack_base + PROCESS_STACK_SIZE - sizeof(uint64_t); //Stack crece hacia abajo
 
-    uint8_t * initial_rsp = stackInit(stack_top, function, argc, argv);
-    if (initial_rsp == NULL) {
-        myFree(stack_base);
-        myFree(process);
-        return NULL;
-    }
-
     process->pid = pid;
     process->ppid = parentID;
-    process->name = (argv != NULL && argc > 0) ? argv[0] : NULL;
     process->priority = priority;
     process->state = PROCESS_STATE_READY;
     process->argc = argc;
     process->stack_base = stack_base;
     process->rip = function;
-    process->rsp = initial_rsp;
+    process->argv = NULL;
 
     // copiar argumentos
     if (argc > 0) {
 		process->argv = (char **) myMalloc(sizeof(char *) * process->argc);
 		if (process->argv == NULL) {
-			myFree(process);
+            myFree(process);
             myFree(stack_base);
 			return NULL;
 		}
 
-        for (int i = 0; i < process->argc; i++) {
+        for (int i = 0; i < argc; i++) {
             int len = strlen(argv[i]);
             process->argv[i] = (char *) myMalloc(sizeof(char) * (len + 1));
             // si cualquier reserva falla, liberar todo lo reservado hasta el momento
@@ -125,6 +117,23 @@ Process * createProcess(void * function, int argc, char ** argv, int priority, i
     else {
         process->argv = NULL;
     }
+
+    process->name = (process->argv != NULL && process->argc > 0) ? process->argv[0] : NULL;
+
+    uint8_t * initial_rsp = stackInit(stack_top, function, process->argc, process->argv);
+    if (initial_rsp == NULL) {
+        if (process->argv != NULL) {
+            for (int i = 0; i < process->argc; i++) {
+                myFree(process->argv[i]);
+            }
+            myFree(process->argv);
+        }
+        myFree(process);
+        myFree(stack_base);
+        return NULL;
+    }
+
+    process->rsp = initial_rsp;
 
     // agregar proceso a la PCB
     PCBTable->processes[pid] = process;
