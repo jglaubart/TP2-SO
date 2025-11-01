@@ -275,7 +275,16 @@ int32_t sys_getpid(void) {
 	return currentProcess->pid;
 }
 int32_t sys_create_process(void * function, int argc, char ** argv) {
-	Process * newProcess = createProcess(function, argc, argv, 1, -1);
+	Process * parent = getCurrentProcess();
+	int priority = MID_PRIORITY;
+	int parentID = -1;
+
+	if (parent != NULL) {
+		priority = parent->priority;
+		parentID = parent->pid;
+	}
+
+	Process * newProcess = createProcess(function, argc, argv, priority, parentID);
 	if (newProcess == NULL) {
 		return -1; // Indicate failure to create process
 	}
