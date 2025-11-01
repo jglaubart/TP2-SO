@@ -124,42 +124,53 @@ setSpeaker:
 
 stackInit:
 
-	;of interest:
-	;rdx -> rsp
-	;rcx -> rip
+	; Calling convention:
+	; rdi -> stack_top (rsp)
+	; rsi -> function (rip)
+	; rdx -> argc
+	; rcx -> argv
 
 	push rbp
 	mov rbp, rsp
 	
-	mov rsp, rdi	;placed at the stack's top
-	push 0x0 ; SS
-	push rdx ; RSP
-	push 0x202 ;RFLAGS
-	push 0x8  ; CS
-	push rcx ; RIP
+	; Save rdi and rsi in registers that we won't clobber
+	; Use r8 and r9 (they're preserved by calling convention, but we're not calling anything)
+	mov r8, rdi  ; Save stack_top in r8
+	mov r9, rsi  ; Save function/rip in r9
+	; rdx (argc) and rcx (argv) are preserved by calling convention
 	
-	;GPR
-	;ABI calling convention
-	;rdi -> argc
-	;rsi -> argv
-	push rax 
-	push rbx
-	push rcx
-	push rdx
-	push rbp
-	push rdi
-	push rsi
-	push r8
-	push r9
-	push r10
-	push r11
-	push r12
-	push r13
-	push r14
-	push r15
+	mov rsp, r8	; Switch to process stack top
+	
+	; Build interrupt frame (bottom of stack, will be popped last by iretq)
+	push 0x0 ; SS
+	push r8 ; RSP (stack_top value)
+	push 0x202 ; RFLAGS (interrupts enabled)
+	push 0x8  ; CS (kernel code segment)
+	push r9 ; RIP (function address)
+	
+	; Push all general purpose registers (as if returning from interrupt)
+	; Order must match popState macro: R15, R14, ..., RAX
+	push 0   ; rax
+	push 0   ; rbx
+	push 0   ; rcx  
+	push 0   ; rdx
+	push 0   ; rbp
+	push rdx ; rdi (argc - still in rdx from original call)
+	push rcx ; rsi (argv - still in rcx from original call)
+	push 0   ; r8
+	push 0   ; r9
+	push 0   ; r10
+	push 0   ; r11
+	push 0   ; r12
+	push 0   ; r13
+	push 0   ; r14
+	push 0   ; r15
 
+	; Return the current RSP (points to top of saved registers, R15)
 	mov rax, rsp
+	
+	; Restore original stack
 	mov rsp, rbp
-	pop rbp
+	pop rbp  ; Restore original rbp
 	
 	ret

@@ -13,6 +13,7 @@ typedef struct scheduler {
     QueueADT readyQueue;
     Process * currentProcess;
     Process * idleProcess;
+    int firstInterrupt;
 } Scheduler;
 
 static Scheduler *scheduler = NULL;
@@ -57,13 +58,19 @@ int initScheduler() {
     idleProcess->state = PROCESS_STATE_RUNNING;
     scheduler->currentProcess = idleProcess;
     scheduler->idleProcess = idleProcess;
+    scheduler->firstInterrupt = 1;
 
     return 0;
 }
 
 uint8_t *schedule(uint8_t *rsp) {
     if (scheduler->currentProcess != NULL) {
-        scheduler->currentProcess->rsp = rsp;
+        // On the first interrupt, we're still in kernel context, not in the idle process context.
+        // Don't overwrite the idle process's properly initialized stack frame.
+        // Only save RSP if this is not the first interrupt, or if we're switching from a process that has actually run.
+        if (!scheduler->firstInterrupt || scheduler->currentProcess != scheduler->idleProcess) {
+            scheduler->currentProcess->rsp = rsp;
+        }
         if (scheduler->currentProcess->state == PROCESS_STATE_RUNNING) {
             scheduler->currentProcess->state = PROCESS_STATE_READY;
             if (enqueue(scheduler->readyQueue, &scheduler->currentProcess) == NULL) {
@@ -71,7 +78,10 @@ uint8_t *schedule(uint8_t *rsp) {
             }
         }
     }
+    
+    scheduler->firstInterrupt = 0;
 
+    
     Process *nextProcess = NULL;
     if (dequeue(scheduler->readyQueue, &nextProcess) == NULL || nextProcess == NULL) {
         panic("No process available to schedule.");
