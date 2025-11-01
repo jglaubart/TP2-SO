@@ -84,7 +84,7 @@ int main(){
 
 	//((EntryPoint)shellModuleAddress)();
 
-	_sti();
+	_sti();   // kernel starts running idle until interrupts are enabled. Changes to shell with the first timer interrupt.
 	
 
 	__builtin_unreachable();

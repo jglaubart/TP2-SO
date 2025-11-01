@@ -36,6 +36,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
         printf("test_processes: ERROR creating process\n");
         return -1;
       } else {
+        printf("test_processes: created process %d\n", p_rqs[rq].pid);
         p_rqs[rq].state = RUNNING;
         alive++;
       }
@@ -54,6 +55,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
                 printf("test_processes: ERROR killing process\n");
                 return -1;
               }
+              printf("test_processes: killed process %d\n", p_rqs[rq].pid);
               p_rqs[rq].state = KILLED;
               alive--;
             }
@@ -65,6 +67,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
                 printf("test_processes: ERROR blocking process\n");
                 return -1;
               }
+              printf("test_processes: blocked process %d\n", p_rqs[rq].pid);
               p_rqs[rq].state = BLOCKED;
             }
             break;

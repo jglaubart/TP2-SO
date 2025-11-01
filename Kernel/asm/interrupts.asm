@@ -174,8 +174,8 @@ _irq00Handler:
 	call irqDispatcher
 
 	mov rdi, rsp
-	call schedule
-	mov rsp, rax
+	call schedule ; get next process's stack pointer to run
+	mov rsp, rax   ; switch stack pointer to the new process's stack
 
 	;EOI
 	mov al, 20h

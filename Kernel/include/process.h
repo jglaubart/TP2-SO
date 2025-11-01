@@ -42,6 +42,4 @@ int block(int pid);
 int unblock(int pid);
 Process * getProcess(int pid);
 
-int startFirstProcess(void);
-
 #endif

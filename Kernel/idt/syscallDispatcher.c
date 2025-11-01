@@ -280,10 +280,6 @@ int32_t sys_create_process(void * function, int argc, char ** argv) {
 		return -1; // Indicate failure to create process
 	}
 
-	if (addProcessToScheduler(newProcess) != 0) {
-		return -1; // Indicate failure to add process to scheduler
-	}
-
 	return newProcess->pid; // Return the PID of the newly created process
 }
 

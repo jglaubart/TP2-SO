@@ -184,39 +184,27 @@ int setProcessState(Process *process, int state){
     return 0;
 }
 
-// int startFirstProcess(void){
-//     char **argvShell = myMalloc(sizeof(char *));
-//     argvShell[0] = "init";
-//     Process * initProcess = createProcess(shellProcess, 0, argvShell, MID_PRIORITY, IDLE_PROCESS_PID);
-
-//     if (initProcess == NULL) {
-// 		return -1;
-// 	}
-
-    
-// }
-
-// static void shellProcess() {
-//     while (1) {
-//         // Aquí iría el código del shell
-//     }
-// }
-
 int block(int pid) {
     Process * process = getProcess(pid);
     if (process == NULL) {
         return -1;
     }
 
-    if(process->state != PROCESS_STATE_RUNNING) {
-        return -1;
+    if (process->state == PROCESS_STATE_READY) {
+        if (removeProcessFromScheduler(process) == -1) {
+            return -1;
+        }
+        process->state = PROCESS_STATE_BLOCKED;
+        return 0;
     }
-    process->state = PROCESS_STATE_BLOCKED;
-    removeProcessFromScheduler(process);
 
-    // interrupcion para hacer context switch
-    yield();
-    return 0;
+    if (process->state == PROCESS_STATE_RUNNING) {
+        process->state = PROCESS_STATE_BLOCKED;
+        yield();
+        return 0;
+    }
+
+    return -1;
 
 }
 
