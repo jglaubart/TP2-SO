@@ -473,7 +473,7 @@ int _test_mm(void){ //MODIFICAR, hasta ahora se lanza como funcion, al implement
         return 1;
     }
 
-    uint8_t * args[] = { "test_mm", (uint8_t *)size_str };
+    uint8_t * args[] = { (uint8_t *)"test_mm", (uint8_t *)size_str };
     int32_t pid = createProcess((void *)test_mm, 2, args);
     return (int)pid;
 }
@@ -488,7 +488,7 @@ int _test_processes(void){
 
     /* Launch the test as a separate process so the shell isn't disrupted
        if the test blocks/kills processes or runs indefinitely. */
-    uint8_t * args[] = { "test_processes", (uint8_t *)max_proc_str };
+    uint8_t * args[] = { (uint8_t *)"test_processes", (uint8_t *)max_proc_str };
     int32_t pid = createProcess((void *)test_processes, 2, args);
 
     if (pid == -1) {
