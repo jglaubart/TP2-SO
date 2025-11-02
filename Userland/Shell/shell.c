@@ -72,13 +72,13 @@ Command commands[] = {
     { .name = "snake",          .function = (int (*)(void))(unsigned long long)snake,           .description = "Launches the snake game" },
     { .name = "time",           .function = (int (*)(void))(unsigned long long)time,            .description = "Prints the current time" },
 
-    { .name = "malloc",         .function = (int (*)(void))(unsigned long long)mem_test_malloc, .description = "Allocates memory and prints the address.\n\t\t\t\tUse: malloc <size_in_bytes>" },
-    { .name = "memstats",       .function = (int (*)(void))(unsigned long long)mem_stats,       .description = "Displays memory statistics (total, used, available)" },
-    { .name = "free",           .function = (int (*)(void))(unsigned long long)mem_test_free,   .description = "Frees a previously allocated memory block.\n\t\t\t\tUse: free <address_in_hex>" },
-    { .name = "test_mm",        .function = (int (*)(void))(unsigned long long)_test_mm,        .description = "Tests the memory manager by allocating and freeing memory.\n\t\t\t\tUse: _test_mm <max_memory>" },
+    { .name = "malloc",         .function = (int (*)(void))(unsigned long long)mem_test_malloc, .description = "Allocates memory and prints the address\n\t\t\t\tUse: malloc <size_in_bytes>" },
+    { .name = "memstats",       .function = (int (*)(void))(unsigned long long)mem_stats,       .description = "Displays memory metrics" },
+    { .name = "free",           .function = (int (*)(void))(unsigned long long)mem_test_free,   .description = "Frees a previously allocated memory block\n\t\t\t\tUse: free <address_in_hex>" },
+    { .name = "test_mm",        .function = (int (*)(void))(unsigned long long)_test_mm,        .description = "Tests the memory manager\n\t\t\t\tUse: _test_mm <max_memory>" },
     { .name = "kill",           .function = (int (*)(void))(unsigned long long)shell_kill,       .description = "Sends a kill signal to the target process.\n\t\t\t\tUse: kill <pid>" },
     { .name = "ps",             .function = (int (*)(void))(unsigned long long)_ps,               .description = "Displays the list of current processes information" },
-    { .name = "test_processes", .function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management by creating, blocking and killing processes.\n\t\t\t\tUse: _test_processes <max_processes>" }
+    { .name = "test_processes", .function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management\n\t\t\t\tUse: _test_processes <max_processes>" }
 };
 
 static void printCommandInfo(char *name) {
@@ -241,10 +241,13 @@ int help(void){
         "clear", "divzero", "echo", "exit", "font", "help", "history", "invop", "man", "regs", "snake", "time"
     };
     char *memory_commands[] = {
-        "malloc", "free", "memstats", "test_mm"
+        "malloc", "free", "memstats"
     };
     char *process_commands[] = {
-        "kill", "ps", "test_processes"
+        "kill", "ps"
+    };
+    char *test_commands[] = {
+        "test_mm", "test_processes"
     };
 
     printf("Available commands:\n\n");
@@ -261,6 +264,11 @@ int help(void){
     printf("\n======================== Processes =========================\n");
     for (size_t i = 0; i < sizeof(process_commands) / sizeof(char *); i++) {
         printCommandInfo(process_commands[i]);
+    }
+
+    printf("\n========================= Tests =========================\n");
+    for (size_t i = 0; i < sizeof(test_commands) / sizeof(char *); i++) {
+        printCommandInfo(test_commands[i]);
     }
 
     printf("\n");
