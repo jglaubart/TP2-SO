@@ -193,7 +193,14 @@ int setProcessState(Process *process, int state){
     return 0;
 }
 
+static int checkValidPid(int pid) {
+    return (pid >= 0 && pid < MAX_PROCESSES);
+}
+
 int block(int pid) {
+    if (pid == 0 || pid == 1 || !checkValidPid(pid)) {
+        return -1;
+    }
     Process * process = getProcess(pid);
     if (process == NULL) {
         return -1;
@@ -220,7 +227,7 @@ int block(int pid) {
 int kill(int pid) {
     /* Protect critical system processes (idle=0 and shell/init=1) from being killed
        by arbitrary user processes to avoid freeing their stacks while they run. */
-    if (pid == 0 || pid == 1) {
+    if (pid == 0 || pid == 1 || !checkValidPid(pid)) {
         return -1;
     }
     Process * process = getProcess(pid);
@@ -256,8 +263,41 @@ int unblock(int pid) {
 }
 
 Process * getProcess(int pid) {
-	if (PCBTable == NULL || pid < 0 || pid >= MAX_PROCESSES) {
+	if (PCBTable == NULL || !checkValidPid(pid)) {
 		return NULL;
 	}
 	return PCBTable->processes[pid];
+}
+
+
+int getProcessInfo(int pid, ProcessInformation * info){
+    if(info == NULL || !checkValidPid(pid)){
+        return -1;
+    }
+
+    Process * process = getProcess(pid);
+    if(process == NULL){
+        return -1;
+    }
+    info->pid = process->pid;
+    info->name = process->name;
+    info->priority = process->priority;
+    info->state = process->state;
+    info->rsp = process->rsp;
+    info->stack_base = process->stack_base;
+    return 0;
+}
+
+int ps(ProcessInformation * processInfoTable){
+    if(processInfoTable == NULL){
+        return -1;
+    }
+
+    int count = 0;
+    for(int pid = 0; pid < MAX_PROCESSES; pid++){
+        if(getProcessInfo(pid, &processInfoTable[count]) == 0){
+            count++;
+        }
+    }
+    return count;
 }

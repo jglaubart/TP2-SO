@@ -65,6 +65,7 @@ int32_t syscallDispatcher(Registers * registers) {
 		case 0x80000202: return sys_unblock((int) registers->rdi);
 		case 0x80000203: return sys_block((int) registers->rdi);
 		case 0x80000204: return sys_kill((int) registers->rdi);
+		case 0x80000205: return sys_ps((ProcessInformation *) registers->rdi);
 		
 		default:
             return 0;
@@ -302,4 +303,8 @@ int32_t sys_block(int pid) {
 
 int32_t sys_kill(int pid) {
 	return kill(pid);
+}
+
+int32_t sys_ps(ProcessInformation * processInfoTable) {
+	return ps(processInfoTable);
 }

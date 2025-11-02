@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <keyboard.h>
+#include <process.h>
 
 typedef struct {
     int64_t r15;
@@ -69,16 +70,21 @@ int32_t sys_get_register_snapshot(int64_t * registers);
 // Get character without showing
 int32_t sys_get_character_without_display(void);
 
-// Memory management syscalls
+
+// =============== Memory management syscalls ================
 void * sys_malloc(int size);
 int32_t sys_free(void * ptr);
 int32_t sys_memstats(int * total, int * used, int * available);
+// =========================================================
 
+// =============== Process management syscalls ================
 int32_t sys_getpid(void);
 int32_t sys_create_process(void * function, int argc, char ** argv);
 int32_t sys_unblock(int pid);
 int32_t sys_block(int pid);
 int32_t sys_kill(int pid);
+int32_t sys_ps(ProcessInformation * processInfoTable);
+// =========================================================
 
 
 #endif

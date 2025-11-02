@@ -119,3 +119,6 @@ int32_t block(int pid){
 int32_t kill(int pid){
     return sys_kill(pid);
 }
+int32_t ps(ProcessInformation * processInfoTable){
+    return sys_ps(processInfoTable);
+}

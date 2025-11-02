@@ -32,6 +32,15 @@ typedef struct Process {
     uint8_t * rsp;
 } Process;
 
+typedef struct ProcessInformation{
+    int pid;
+    char * name;
+    int priority;
+    ProcessState state;
+    uint8_t * rsp;
+    uint8_t * stack_base;
+} ProcessInformation;
+
 int getNextPid(void);
 Process * createProcess(void * function, int argc, char ** argv, int priority, int parentID);
 void freeProcess(Process * p);
@@ -41,5 +50,8 @@ int kill(int pid);
 int block(int pid);
 int unblock(int pid);
 Process * getProcess(int pid);
+int getProcessInfo(int pid, ProcessInformation * info);
+int ps(ProcessInformation * processInfoTable); // Always recieves a table of MAX_PROCESSES size
+
 
 #endif

@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "syscalls.h"
+#include "sys.h"
 #include "test_util.h"
 
 enum State { RUNNING,
@@ -16,12 +16,12 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
   uint8_t alive = 0;
   uint8_t action;
   uint64_t max_processes;
-  uint8_t *argvAux[] = {0};
+  uint8_t *argvAux[] = {"endless_loop", 0};
 
-  if (argc != 1)
+  if (argc != 2)
     return -1;
   
-  if ((max_processes = satoi(argv[0])) <= 0)
+  if ((max_processes = satoi(argv[1])) <= 0)
     return -1;
 
   p_rq p_rqs[max_processes];
@@ -30,7 +30,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
   while (1) {
     // Create max_processes processes
     for (rq = 0; rq < max_processes; rq++) {
-      p_rqs[rq].pid = createProcess(endless_loop, 0, argvAux);
+      p_rqs[rq].pid = createProcess(endless_loop, 1, (uint8_t **)argvAux);
 
       if (p_rqs[rq].pid == -1) {
         printf("test_processes: ERROR creating process\n");

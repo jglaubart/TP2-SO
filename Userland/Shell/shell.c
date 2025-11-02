@@ -21,6 +21,7 @@ static void * const snakeModuleAddress = (void*)0x500000;
 #define INC_MOD(x, m) x = (((x) + 1) % (m))
 #define SUB_MOD(a, b, m) ((a) - (b) < 0 ? (m) - (b) + (a) : (a) - (b))
 #define DEC_MOD(x, m) ((x) = SUB_MOD(x, 1, m))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 static char buffer[MAX_BUFFER_SIZE];
 static int buffer_dim = 0;
@@ -42,6 +43,7 @@ int mem_stats(void);
 int _test_mm(void);
 int shell_kill(void);
 int _test_processes(void);
+int _ps(void);
 
 
 static void printPreviousCommand(enum REGISTERABLE_KEYS scancode);
@@ -73,15 +75,16 @@ Command commands[] = {
     { .name = "malloc",         .function = (int (*)(void))(unsigned long long)mem_test_malloc, .description = "Allocates memory and prints the address.\n\t\t\t\tUse: malloc <size_in_bytes>" },
     { .name = "memstats",       .function = (int (*)(void))(unsigned long long)mem_stats,       .description = "Displays memory statistics (total, used, available)" },
     { .name = "free",           .function = (int (*)(void))(unsigned long long)mem_test_free,   .description = "Frees a previously allocated memory block.\n\t\t\t\tUse: free <address_in_hex>" },
-    { .name = "test_mm",       .function = (int (*)(void))(unsigned long long)_test_mm,        .description = "Tests the memory manager by allocating and freeing memory.\n\t\t\t\tUse: _test_mm <max_memory>" },
+    { .name = "test_mm",        .function = (int (*)(void))(unsigned long long)_test_mm,        .description = "Tests the memory manager by allocating and freeing memory.\n\t\t\t\tUse: _test_mm <max_memory>" },
     { .name = "kill",           .function = (int (*)(void))(unsigned long long)shell_kill,       .description = "Sends a kill signal to the target process.\n\t\t\t\tUse: kill <pid>" },
+    { .name = "ps",             .function = (int (*)(void))(unsigned long long)_ps,               .description = "Displays the list of current processes information" },
     { .name = "test_processes", .function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management by creating, blocking and killing processes.\n\t\t\t\tUse: _test_processes <max_processes>" }
 };
 
-static void printCommandInfo(const char *name) {
+static void printCommandInfo(char *name) {
     for (size_t i = 0; i < sizeof(commands) / sizeof(Command); i++) {
         if (strcmp(commands[i].name, name) == 0) {
-            printf("* %s%s\t ---\t%s\n", commands[i].name, strlen(commands[i].name) < 4 ? "\t" : "", commands[i].description);
+            printf("* %s  ---\t%s\n", commands[i].name, commands[i].description);
             return;
         }
     }
@@ -234,14 +237,14 @@ int echo(void){
 }
 
 int help(void){
-    static const char *basic_commands[] = {
+    char *basic_commands[] = {
         "clear", "divzero", "echo", "exit", "font", "help", "history", "invop", "man", "regs", "snake", "time"
     };
-    static const char *memory_commands[] = {
+    char *memory_commands[] = {
         "malloc", "free", "memstats", "test_mm"
     };
-    static const char *process_commands[] = {
-        "kill", "test_processes"
+    char *process_commands[] = {
+        "kill", "ps", "test_processes"
     };
 
     printf("Available commands:\n\n");
@@ -279,7 +282,7 @@ int shell_kill(void){
 
     int32_t result = kill(pid);
     if (result != 0) {
-        perror(FD_STDERR, "kill: unable to terminate pid %d\n", pid);
+        fprintf(FD_STDERR, "kill: unable to terminate pid %d\n", pid);
         return 1;
     }
 
@@ -447,6 +450,7 @@ int mem_test_free(void) {
     return 0;
 }
 
+
 int mem_stats(void) {
     int total = 0, used = 0, available = 0;
     
@@ -469,8 +473,8 @@ int _test_mm(void){ //MODIFICAR, hasta ahora se lanza como funcion, al implement
         return 1;
     }
 
-    char * args[] = { size_str };
-    int32_t pid = createProcess((void *)test_mm, 1, (char **)args);
+    uint8_t * args[] = { "test_mm", (uint8_t *)size_str };
+    int32_t pid = createProcess((void *)test_mm, 2, args);
     return (int)pid;
 }
 
@@ -484,9 +488,8 @@ int _test_processes(void){
 
     /* Launch the test as a separate process so the shell isn't disrupted
        if the test blocks/kills processes or runs indefinitely. */
-    char * args[] = { max_proc_str };
-
-    int32_t pid = createProcess((void *)test_processes, 1, (char **)args);
+    uint8_t * args[] = { "test_processes", (uint8_t *)max_proc_str };
+    int32_t pid = createProcess((void *)test_processes, 2, args);
 
     if (pid == -1) {
         perror("_test_processes: failed to create process\n");
@@ -495,4 +498,111 @@ int _test_processes(void){
 
     printf("_test_processes: started test as process %d\n", pid);
     return 0;
+}
+
+int _ps(void){ //MODOFICAR, ver de hacer mas corto o mover de archivo
+    ProcessInformation processInfo[64];
+    int count = ps(processInfo);
+    if (count < 0){
+        perror("ps: syscall failed\n");
+        return count;
+    }
+    if (count == 0){
+        printf("No processes found\n");
+        return 0;
+    }
+
+    const char * colors[] = {
+        [PROCESS_STATE_READY]      = "\e[0;33m",
+        [PROCESS_STATE_RUNNING]    = "\e[0;32m",
+        [PROCESS_STATE_BLOCKED]    = "\e[0;31m",
+        [PROCESS_STATE_TERMINATED] = "\e[0;90m"
+    };
+    const char * stateNames[] = {
+        [PROCESS_STATE_READY]      = "READY",
+        [PROCESS_STATE_RUNNING]    = "RUNNING",
+        [PROCESS_STATE_BLOCKED]    = "BLOCKED",
+        [PROCESS_STATE_TERMINATED] = "TERMINATED"
+    };
+    const char * reset = "\e[0m";
+
+    int max_name_length = 4;
+	for (int i = 0; i < count; i++) {
+        int len = processInfo[i].name ? (int)strlen(processInfo[i].name) : 0;
+		if (len > max_name_length) {
+			max_name_length = len;
+		}
+	}
+
+    int header_name_padding = max_name_length - 4;
+    if (header_name_padding < 2) {
+        header_name_padding = 2;
+    }
+    char padding_header[header_name_padding + 1];
+    int j = 0;
+    for (; j < header_name_padding; j++) {
+        padding_header[j] = ' ';
+    }
+    padding_header[j] = '\0';
+
+    const int state_header_target = 10;
+    int header_state_padding = state_header_target - 5; /* "State" */
+    if (header_state_padding < 2) {
+        header_state_padding = 2;
+    }
+    char padding_state_header[header_state_padding + 1];
+    j = 0;
+    for (; j < header_state_padding; j++) {
+        padding_state_header[j] = ' ';
+    }
+    padding_state_header[j] = '\0';
+
+	printf("\e[0;0mPID\tName%sState%sPriority\tRSP\t\tRBP\t\tIn foreground\n",
+	       padding_header, padding_state_header);
+
+    for (int i = 0; i < count; i++) {
+        const char *name = processInfo[i].name ? processInfo[i].name : "<unnamed>";
+        int name_len = (int)strlen(name);
+        int padding_len = max_name_length - name_len + 2;
+        if (padding_len < 2) {
+            padding_len = 2;
+        }
+        char padding[padding_len + 1];
+        int k = 0;
+        for (; k < padding_len; k++) {
+            padding[k] = ' ';
+        }
+        padding[k] = '\0';
+
+        ProcessState state = processInfo[i].state;
+        const char *state_color = (state >= PROCESS_STATE_READY && state <= PROCESS_STATE_TERMINATED && colors[state])
+                                      ? colors[state]
+                                      : reset;
+        const char *state_name = (state >= PROCESS_STATE_READY && state <= PROCESS_STATE_TERMINATED && stateNames[state])
+                                     ? stateNames[state]
+                                     : "UNKNOWN";
+        int state_len = (int)strlen(state_name);
+        int state_padding_len = state_header_target - state_len;
+        if (state_padding_len < 1) {
+            state_padding_len = 1;
+        }
+        char state_padding[state_padding_len + 1];
+        k = 0;
+        for (; k < state_padding_len; k++) {
+            state_padding[k] = ' ';
+        }
+        state_padding[k] = '\0';
+
+        unsigned int rsp = (unsigned int)(uintptr_t)processInfo[i].rsp;
+        unsigned int stack_base = (unsigned int)(uintptr_t)processInfo[i].stack_base;
+
+		// printf("%d\t%s%s%s%s%s%s%d\t\t0x%x\t0x%x\t%s\n",
+		// 	   processInfo[i].pid, name, padding, state_color, state_name, reset, state_padding,
+		// 	   processInfo[i].priority, rsp, stack_base, processInfo[i].hasForeground == 1 ? "Yes" : "No");
+        printf("%d\t%s%s%s%s%s%s%d\t\t0x%x\t0x%x\t%s\n",
+			   processInfo[i].pid, name, padding, state_color, state_name, reset, state_padding,
+			   processInfo[i].priority, rsp, stack_base, "N/A"); //MODIFICAR, agregar foreground al implementarlo (descomentar linea anterior)
+	}
+	return 0;
+
 }
