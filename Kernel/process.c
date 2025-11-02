@@ -87,6 +87,7 @@ Process * createProcess(void * function, int argc, char ** argv, int priority, i
     process->stack_base = stack_base;
     process->rip = function;
     process->argv = NULL;
+    process->waiting_for_child = -1;
 
     // copiar argumentos
     if (argc > 0) {
@@ -237,12 +238,24 @@ int kill(int pid) {
     
     removeProcessFromScheduler(process);
 
+    // Mark process as terminated
+    process->state = PROCESS_STATE_TERMINATED;
+
+    // Wake up parent if waiting for this child
+    if (process->ppid >= 0 && checkValidPid(process->ppid)) {
+        Process * parent = getProcess(process->ppid);
+        if (parent != NULL && parent->waiting_for_child == pid) {
+            parent->waiting_for_child = -1;
+            if (parent->state == PROCESS_STATE_BLOCKED) {
+                unblock(parent->pid);
+            }
+        }
+    }
+
     // interrupcion para hacer context switch
     if(process->state == PROCESS_STATE_RUNNING) {
         yield();
     }
-    
-    process->state = PROCESS_STATE_TERMINATED;
 
     freeProcess(process);
     return 0;
@@ -267,7 +280,7 @@ int nice(int pid, int newPriority) {
         return -1;
     }
     
-    if (newPriority < MAX_PRIORITY || newPriority > MIN_PRIORITY) {
+    if (newPriority < MIN_PRIORITY || newPriority > MAX_PRIORITY) {
         return -1;
     }
 
@@ -277,6 +290,46 @@ int nice(int pid, int newPriority) {
     }
 
     process->priority = newPriority;
+    return 0;
+}
+
+int wait(int pid) {
+    // Validate target PID
+    if (!checkValidPid(pid)) {
+        return -1;
+    }
+
+    Process * child = getProcess(pid);
+    if (child == NULL) {
+        return -1; // Child process doesn't exist
+    }
+
+    Process * current = getCurrentProcess();
+    if (current == NULL) {
+        return -1;
+    }
+
+    // Verify that the target is actually a child of the caller
+    if (child->ppid != current->pid) {
+        return -1; // Not a child of the calling process
+    }
+
+    // If child is already terminated, return immediately
+    if (child->state == PROCESS_STATE_TERMINATED) {
+        return 0;
+    }
+
+    // Mark that we're waiting for this child
+    current->waiting_for_child = pid;
+
+    // Block the current process
+    if (block(current->pid) == -1) {
+        current->waiting_for_child = -1;
+        return -1;
+    }
+
+    // When we get here, we've been unblocked (child terminated)
+    current->waiting_for_child = -1;
     return 0;
 }
 

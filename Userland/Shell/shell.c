@@ -41,6 +41,7 @@ int mem_test_malloc(void);
 int mem_test_free(void);
 int mem_stats(void);
 int _test_mm(void);
+int _test_prio(void);
 int shell_kill(void);
 int _test_processes(void);
 int _ps(void);
@@ -78,6 +79,7 @@ Command commands[] = {
     { .name = "test_mm",        .function = (int (*)(void))(unsigned long long)_test_mm,        .description = "Tests the memory manager\n\t\t\t\tUse: _test_mm <max_memory>" },
     { .name = "kill",           .function = (int (*)(void))(unsigned long long)shell_kill,       .description = "Sends a kill signal to the target process.\n\t\t\t\tUse: kill <pid>" },
     { .name = "ps",             .function = (int (*)(void))(unsigned long long)_ps,               .description = "Displays the list of current processes information" },
+    { .name = "test_prio",      .function = (int (*)(void))(unsigned long long)_test_prio,      .description = "Tests process priority scheduling\n\t\t\t\tUse: _test_prio <max_value>" },
     { .name = "test_processes", .function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management\n\t\t\t\tUse: _test_processes <max_processes>" }
 };
 
@@ -247,7 +249,7 @@ int help(void){
         "kill", "ps"
     };
     char *test_commands[] = {
-        "test_mm", "test_processes"
+        "test_mm", "test_prio", "test_processes"
     };
 
     printf("Available commands:\n\n");
@@ -505,6 +507,28 @@ int _test_processes(void){
     }
 
     printf("_test_processes: started test as process %d\n", pid);
+    return 0;
+}
+
+int _test_prio(void){
+    char * max_value_str = strtok(NULL, " ");
+
+    if (max_value_str == NULL || strtok(NULL, " ") != NULL) {
+        perror("Usage: _test_prio <max_value>\n");
+        return 1;
+    }
+
+    /* Launch the test as a separate process so the shell isn't disrupted
+       if the test blocks/kills processes or runs indefinitely. */
+    uint8_t * args[] = { (uint8_t *)"test_prio", (uint8_t *)max_value_str };
+    int32_t pid = createProcess((void *)test_prio, 2, args);
+
+    if (pid == -1) {
+        perror("_test_prio: failed to create process\n");
+        return 1;
+    }
+
+    printf("_test_prio: started test as process %d\n", pid);
     return 0;
 }
 

@@ -67,6 +67,7 @@ int32_t syscallDispatcher(Registers * registers) {
 		case 0x80000204: return sys_kill((int) registers->rdi);
 		case 0x80000205: return sys_ps((ProcessInformation *) registers->rdi);
 		case 0x80000206: return sys_nice((int) registers->rdi, (int) registers->rsi);
+		case 0x80000207: return sys_wait((int) registers->rdi);
 		
 		default:
             return 0;
@@ -312,4 +313,8 @@ int32_t sys_ps(ProcessInformation * processInfoTable) {
 
 int32_t sys_nice(int pid, int newPriority) {
 	return nice(pid, newPriority);
+}
+
+int32_t sys_wait(int pid) {
+	return wait(pid);
 }

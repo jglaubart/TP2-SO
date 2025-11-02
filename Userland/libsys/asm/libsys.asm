@@ -41,6 +41,7 @@ GLOBAL sys_kill
 
 GLOBAL sys_ps
 GLOBAL sys_nice
+GLOBAL sys_wait
 section .text
 
 %macro sys_int80 1
@@ -99,3 +100,4 @@ sys_block: sys_int80 0x80000203
 sys_kill: sys_int80 0x80000204
 sys_ps: sys_int80 0x80000205
 sys_nice: sys_int80 0x80000206
+sys_wait: sys_int80 0x80000207

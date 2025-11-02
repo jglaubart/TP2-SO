@@ -126,3 +126,7 @@ int32_t ps(ProcessInformation * processInfoTable){
 int32_t nice(int pid, int newPriority){
     return sys_nice(pid, newPriority);
 }
+/* 0x80000207 */
+int32_t wait(int pid){
+    return sys_wait(pid);
+}

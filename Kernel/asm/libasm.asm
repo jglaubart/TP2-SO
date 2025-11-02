@@ -12,9 +12,12 @@ GLOBAL setSpeaker
 GLOBAL getRegisterSnapshot
 
 GLOBAL stackInit
+GLOBAL processExit
 
 EXTERN register_snapshot
 EXTERN register_snapshot_taken
+EXTERN kill
+EXTERN getCurrentProcess
 
 section .text
 
@@ -141,9 +144,18 @@ stackInit:
 	
 	mov rsp, r8	; Switch to process stack top
 	
+	; Push return address for when main function returns
+	; This ensures that when the function does 'ret', it goes to processExit
+	mov r10, processExit
+	push r10
+	
+	; Save the adjusted RSP (after pushing return address)
+	; This will be the RSP when the function starts executing
+	mov r11, rsp
+	
 	; Build interrupt frame (bottom of stack, will be popped last by iretq)
 	push 0x0 ; SS
-	push r8 ; RSP (stack_top value)
+	push r11 ; RSP (stack with return address already pushed)
 	push 0x202 ; RFLAGS (interrupts enabled)
 	push 0x8  ; CS (kernel code segment)
 	push r9 ; RIP (function address)
@@ -174,3 +186,21 @@ stackInit:
 	pop rbp  ; Restore original rbp
 	
 	ret
+
+; processExit: Called when a process function returns
+; This wrapper terminates the process and triggers a scheduler interrupt
+processExit:
+	; Get current process PID and kill it
+	call getCurrentProcess
+	test rax, rax
+	jz .hang              ; If no current process, hang
+	
+	mov rdi, [rax]        ; Get PID (first field in Process struct)
+	call kill             ; Call kill(current_pid)
+	
+	; Force a scheduler interrupt by calling yield
+	int 0x20              ; Timer interrupt to force scheduler
+	
+.hang:
+	hlt
+	jmp .hang

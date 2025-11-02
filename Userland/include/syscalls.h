@@ -187,6 +187,8 @@ int32_t sys_kill(int pid);
 int32_t sys_ps(ProcessInformation * processInfoTable);
 /* 0x80000206 */
 int32_t sys_nice(int pid, int newPriority);
+/* 0x80000207 */
+int32_t sys_wait(int pid);
 
 // ==========================================================================
 
