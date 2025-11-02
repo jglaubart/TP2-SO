@@ -49,6 +49,7 @@ int initPCBTable();
 int kill(int pid);
 int block(int pid);
 int unblock(int pid);
+int nice(int pid, int newPriority);
 Process * getProcess(int pid);
 int getProcessInfo(int pid, ProcessInformation * info);
 int ps(ProcessInformation * processInfoTable); // Always recieves a table of MAX_PROCESSES size

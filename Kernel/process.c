@@ -262,6 +262,24 @@ int unblock(int pid) {
     return 0;
 }
 
+int nice(int pid, int newPriority) {
+    if (!checkValidPid(pid)) {
+        return -1;
+    }
+    
+    if (newPriority < MAX_PRIORITY || newPriority > MIN_PRIORITY) {
+        return -1;
+    }
+
+    Process * process = getProcess(pid);
+    if (process == NULL) {
+        return -1;
+    }
+
+    process->priority = newPriority;
+    return 0;
+}
+
 Process * getProcess(int pid) {
 	if (PCBTable == NULL || !checkValidPid(pid)) {
 		return NULL;

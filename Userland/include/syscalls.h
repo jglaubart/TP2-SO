@@ -183,8 +183,10 @@ int32_t sys_unblock(int pid);
 int32_t sys_block(int pid);
 /* 0x80000204 */
 int32_t sys_kill(int pid);
-
+/* 0x80000205 */
 int32_t sys_ps(ProcessInformation * processInfoTable);
+/* 0x80000206 */
+int32_t sys_nice(int pid, int newPriority);
 
 // ==========================================================================
 

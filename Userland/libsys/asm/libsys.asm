@@ -40,6 +40,7 @@ GLOBAL sys_block
 GLOBAL sys_kill
 
 GLOBAL sys_ps
+GLOBAL sys_nice
 section .text
 
 %macro sys_int80 1
@@ -97,3 +98,4 @@ sys_unblock: sys_int80 0x80000202
 sys_block: sys_int80 0x80000203
 sys_kill: sys_int80 0x80000204
 sys_ps: sys_int80 0x80000205
+sys_nice: sys_int80 0x80000206

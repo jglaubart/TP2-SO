@@ -83,6 +83,7 @@ int32_t sys_create_process(void * function, int argc, char ** argv);
 int32_t sys_unblock(int pid);
 int32_t sys_block(int pid);
 int32_t sys_kill(int pid);
+int32_t sys_nice(int pid, int newPriority);
 int32_t sys_ps(ProcessInformation * processInfoTable);
 // =========================================================
 

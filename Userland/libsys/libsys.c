@@ -122,3 +122,7 @@ int32_t kill(int pid){
 int32_t ps(ProcessInformation * processInfoTable){
     return sys_ps(processInfoTable);
 }
+/* 0x80000206 */
+int32_t nice(int pid, int newPriority){
+    return sys_nice(pid, newPriority);
+}
