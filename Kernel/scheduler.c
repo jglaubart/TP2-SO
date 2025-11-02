@@ -14,49 +14,45 @@ typedef struct scheduler {
     Process * currentProcess;
     Process * idleProcess;
     int firstInterrupt;
+    int currentQuantum;      // Current quantum counter for running process
+    int quantumLimit;        // Quantum limit based on priority
 } Scheduler;
 
 static Scheduler *scheduler = NULL;
 
-static int compareProcessPriority(void *a, void *b) {
+// Comparison function for finding processes (used by queueRemove)
+// Only compares process pointers for equality, NOT for priority ordering
+static int compareProcessForRemoval(void *a, void *b) {
     Process *procA = (a == NULL) ? NULL : *(Process **)a;
     Process *procB = (b == NULL) ? NULL : *(Process **)b;
 
     if (procA == procB) {
         return 0;
     }
+    // Return non-zero if different (doesn't matter which value)
+    return (procA > procB) ? 1 : -1;
+}
 
-    if (procA == NULL) {
-        return -1;
-    }
-    if (procB == NULL) {
-        return 1;
-    }
-
-    if (procA->priority > procB->priority) {
-        return 1;
-    } else if (procA->priority < procB->priority) {
-        return -1;
-    } else {
-        return (procA > procB) - (procA < procB);
-    }
+// Helper function to calculate quantum limit based on priority
+// Higher priority (lower number) = more time slices before context switch
+static int getQuantumLimit(int priority) {
+    // (right shift = divide by 2^priority)
+    return 4 >> priority;
 }
 
 int initScheduler() {
-    if (scheduler != NULL) {
-        panic("scheduler already initialized");
-        return -1;	// scheduler already initialized
-    }
-
     scheduler = myMalloc(sizeof(Scheduler));
     if (scheduler == NULL) {
         panic("Failed to allocate memory for Scheduler.");
     }
 
-    scheduler->readyQueue = createQueue((QueueElemCmpFn)compareProcessPriority, sizeof(Process *));
+    scheduler->readyQueue = createQueue((QueueElemCmpFn)compareProcessForRemoval, sizeof(Process *));
     if (scheduler->readyQueue == NULL) {
         panic("Failed to create ready queue for scheduler.");
     }
+
+    scheduler->currentQuantum = 0;
+    scheduler->quantumLimit = 0;
     char ** idleArgv = myMalloc(sizeof(char *) * 2);
     idleArgv[0] = "idle";
     idleArgv[1] = NULL;
@@ -82,11 +78,25 @@ uint8_t *schedule(uint8_t *rsp) {
         if (!scheduler->firstInterrupt || scheduler->currentProcess != scheduler->idleProcess) {
             scheduler->currentProcess->rsp = rsp;
         }
-        if (scheduler->currentProcess->state == PROCESS_STATE_RUNNING) {
-            scheduler->currentProcess->state = PROCESS_STATE_READY;
-            if (enqueue(scheduler->readyQueue, &scheduler->currentProcess) == NULL) {
-                panic("Failed to re-enqueue current process.");
+        
+        // Increment quantum counter
+        scheduler->currentQuantum++;
+        
+        // Check if we should switch: either quantum expired or process is not RUNNING
+        int shouldSwitch = (scheduler->currentProcess->state != PROCESS_STATE_RUNNING) ||
+                          (scheduler->currentQuantum >= scheduler->quantumLimit);
+        
+        if (shouldSwitch) {
+            if (scheduler->currentProcess->state == PROCESS_STATE_RUNNING) {
+                scheduler->currentProcess->state = PROCESS_STATE_READY;
+                if (enqueue(scheduler->readyQueue, &scheduler->currentProcess) == NULL) {
+                    panic("Failed to re-enqueue current process.");
+                }
             }
+        } else {
+            // Don't switch yet, continue with current process
+            scheduler->firstInterrupt = 0;
+            return scheduler->currentProcess->rsp;
         }
     }
     
@@ -100,6 +110,10 @@ uint8_t *schedule(uint8_t *rsp) {
 
     nextProcess->state = PROCESS_STATE_RUNNING;
     scheduler->currentProcess = nextProcess;
+    
+    // Reset quantum counter and set limit based on new process priority
+    scheduler->currentQuantum = 0;
+    scheduler->quantumLimit = getQuantumLimit(nextProcess->priority);
 
     return scheduler->currentProcess->rsp;
 }
