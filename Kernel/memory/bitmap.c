@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 // Configuración del heap
-#define HEAP_SIZE (4096 * 16)  // 64K de Heap
+#define HEAP_SIZE (4096 * 128)  // 512K de Heap
 #define BLOCK_SIZE 64             // Tamaño mínimo de bloque en bytes
 #define NUM_BLOCKS (HEAP_SIZE / BLOCK_SIZE)  // Cantidad total de bloques
 #define BITS_PER_BYTE 8           // Bits que tiene cada byte del bitmap

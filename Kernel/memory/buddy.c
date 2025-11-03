@@ -3,7 +3,7 @@
 #include <memory.h>
 
 #define MIN_BLOCK_ORDER 5
-#define MAX_BLOCK_ORDER 18
+#define MAX_BLOCK_ORDER 19
 #define TOTAL_HEAP_SIZE (1u << MAX_BLOCK_ORDER)
 #define DEPTH_LEVELS (MAX_BLOCK_ORDER - MIN_BLOCK_ORDER + 1)
 #define TOTAL_NODES ((1u << DEPTH_LEVELS) - 1)
