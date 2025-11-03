@@ -13,11 +13,15 @@ GLOBAL getRegisterSnapshot
 
 GLOBAL stackInit
 GLOBAL processExit
+GLOBAL semLock
+GLOBAL semUnlock
 
 EXTERN register_snapshot
 EXTERN register_snapshot_taken
 EXTERN kill
 EXTERN getCurrentProcess
+
+
 
 section .text
 
@@ -201,6 +205,19 @@ processExit:
 	; Force a scheduler interrupt by calling yield
 	int 0x20              ; Timer interrupt to force scheduler
 	
+
+; spinlock semaphore implementation based on wiki osdev
+semLock:
+    mov al, 1
+    xchg al, BYTE [rdi]
+    cmp al, 0
+    jne semLock
+    ret
+
+semUnlock:
+    mov BYTE [rdi], 0
+    ret
+
 .hang:
 	hlt
 	jmp .hang
