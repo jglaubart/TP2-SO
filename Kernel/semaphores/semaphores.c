@@ -14,6 +14,7 @@ struct semCDT {
     QueueADT blocked_processes;
 };
 
+// queueLock acts as a mutex for critical regions
 static QueueADT semaphoreQueue = NULL;
 uint8_t queueLock = 0;
 
@@ -53,6 +54,41 @@ void semInit(semADT sem, const char *name, uint32_t initial_count){
     semUnlock(&queueLock);
 }
 
-int post(semADT sem){}
-int wait(semADT sem){}
+int post(semADT sem){
+    if (sem == NULL) {
+        return -1;
+    }
+
+
+    semLock(&queueLock);
+    if(queueIsEmpty(sem->blocked_processes)) {
+        sem->count++;
+    } else {
+        int pid;
+        dequeue(sem->blocked_processes, &pid);
+        unblock(pid);
+    }
+    semUnlock(&queueLock);
+    return 0;
+}
+
+int wait(semADT sem){
+    if (sem == NULL) {
+        return -1;
+    }
+
+    semLock(&queueLock);
+    if (sem->count > 0) {
+        sem->count--;
+        semUnlock(&queueLock);
+    } else {
+        Process * currentProcess = getCurrentProcess();
+        int pid = currentProcess->pid;
+        enqueue(sem->blocked_processes, &pid);
+        semUnlock(&queueLock);
+        block(pid);
+        yield();
+    }
+    return 0;
+}
 void semDestroy(semADT sem){}
