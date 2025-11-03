@@ -36,7 +36,7 @@ static int compareProcessForRemoval(void *a, void *b) {
 // Helper function to calculate quantum limit based on priority
 // Higher priority (lower number) = more time slices before context switch
 static int getQuantumLimit(int priority) {
-    // (right shift = divide by 2^priority)
+    // (right shift = divide by 2^priority), to avoid importing pow
     return 4 >> priority;
 }
 

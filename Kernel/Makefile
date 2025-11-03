@@ -5,7 +5,7 @@ ALLOCATOR ?= buddy
 
 KERNEL_BIN=kernel.bin
 KERNEL_ELF=kernel.elf
-SOURCES=$(wildcard *.c ./drivers/*.c ./idt/*.c ./ds/*.c)
+SOURCES=$(wildcard *.c ./drivers/*.c ./idt/*.c ./ds/*.c ./processes/*.c)
 SOURCES_ASM=$(wildcard asm/*.asm)
 
 # Select memory allocator source file based on ALLOCATOR variable
@@ -49,6 +49,6 @@ $(LOADEROBJECT):
 	$(ASM) $(ASMFLAGS) $(LOADERSRC) -o $(LOADEROBJECT)
 
 clean:
-	rm -rf */*.o *.o *.bin memory/*.o $(KERNEL_ELF)
+	rm -rf */*.o *.o *.bin memory/*.o processes/*.o $(KERNEL_ELF)
 
 .PHONY: all clean
