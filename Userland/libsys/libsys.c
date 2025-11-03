@@ -138,7 +138,7 @@ int32_t yield(void){
 // Semaphore management syscall prototypes
 /* 0x80000300 */
 void * semInit(const char *name, uint32_t initial_count){
-    return sys_sem_init(name, initial_count);
+    return (void *)sys_sem_init(name, initial_count);
 }
 /* 0x80000301 */
 int32_t semPost(void * sem){

@@ -45,6 +45,7 @@ int _test_prio(void);
 int shell_kill(void);
 int _test_processes(void);
 int _ps(void);
+int _test_sync(void);
 
 
 static void printPreviousCommand(enum REGISTERABLE_KEYS scancode);
@@ -80,7 +81,8 @@ Command commands[] = {
     { .name = "kill",           .function = (int (*)(void))(unsigned long long)shell_kill,       .description = "Sends a kill signal to the target process.\n\t\t\t\tUse: kill <pid>" },
     { .name = "ps",             .function = (int (*)(void))(unsigned long long)_ps,               .description = "Displays the list of current processes information" },
     { .name = "test_prio",      .function = (int (*)(void))(unsigned long long)_test_prio,      .description = "Tests process priority scheduling\n\t\t\t\tUse: _test_prio <max_value>" },
-    { .name = "test_processes", .function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management\n\t\t\t\tUse: _test_processes <max_processes>" }
+    { .name = "test_processes", .function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management\n\t\t\t\tUse: _test_processes <max_processes>" },
+    { .name = "test_sync",      .function = (int (*)(void))(unsigned long long)_test_sync,       .description = "Tests process synchronization\n\t\t\t\tUse: _test_sync <num_iterations> <use_semaphore: 0|1>" }
 };
 
 static void printCommandInfo(char *name) {
@@ -283,7 +285,7 @@ int help(void){
         "kill", "ps"
     };
     char *test_commands[] = {
-        "test_mm", "test_prio", "test_processes"
+        "test_mm", "test_prio", "test_processes", "test_sync"
     };
 
     printf("Available commands:\n\n");
@@ -677,5 +679,26 @@ int _ps(void){ //MODOFICAR, ver de hacer mas corto o mover de archivo
 			   processInfo[i].priority, rsp, stack_base, "N/A"); //MODIFICAR, agregar foreground al implementarlo (descomentar linea anterior)
 	}
 	return 0;
+}
 
+int _test_sync(void) {
+    char *iterations_str = strtok(NULL, " ");
+    char *use_sem_str = strtok(NULL, " ");
+
+    if (iterations_str == NULL || use_sem_str == NULL || strtok(NULL, " ") != NULL) {
+        perror("Usage: _test_sync <iterations> <use_sem>\n");
+        return -1;
+    }
+
+    uint8_t *args[] = { (uint8_t *)iterations_str, (uint8_t *)use_sem_str };
+    int32_t pid = createProcess((void *)test_sync, 2, args, current_command_background);
+
+    if (pid == -1) {
+        perror("_test_sync: failed to create process\n");
+        return -1;
+    }
+
+    printf("_test_sync: started test as process %d\n", pid);
+    last_spawned_pid = pid;
+    return 0;
 }
