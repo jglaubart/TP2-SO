@@ -205,6 +205,10 @@ processExit:
 	; Force a scheduler interrupt by calling yield
 	int 0x20              ; Timer interrupt to force scheduler
 	
+	.hang:
+	hlt
+	jmp .hang
+
 
 ; spinlock semaphore implementation based on wiki osdev
 semLock:
@@ -217,7 +221,3 @@ semLock:
 semUnlock:
     mov BYTE [rdi], 0
     ret
-
-.hang:
-	hlt
-	jmp .hang
