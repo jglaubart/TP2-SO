@@ -52,20 +52,6 @@ void * initializeKernelBinary(){
 	return getStackBase();
 }
 
-void processA(){
-	while(1){
-		print("Hello, kernel here!\n");
-		sleep(1);
-	}
-	
-}
-
-void processB(){
-	while(1){
-		print("Process B, kernel here!\n");
-		sleep(1);
-	}
-}
 
 int main(){	
 	load_idt();
@@ -78,11 +64,6 @@ int main(){
 	argv[0] = "shell";
 	argv[1] = NULL;
 	createProcess(shellModuleAddress, 1, argv, MID_PRIORITY, 1);
-
-	// createProcess(processA, 0, NULL, MID_PRIORITY, -1);
-	// createProcess(processB, 0, NULL, MID_PRIORITY, -1);
-
-	//((EntryPoint)shellModuleAddress)();
 
 	_sti();   // kernel starts running idle until interrupts are enabled. Changes to shell with the first timer interrupt.
 	
