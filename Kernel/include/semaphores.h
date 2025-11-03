@@ -6,7 +6,7 @@
 
 typedef struct semCDT * semADT;
 
-semADT semInit(semADT sem, const char *name, uint32_t initial_count);
+semADT semInit(const char *name, uint32_t initial_count);
 int post(semADT sem);
 int wait(semADT sem);
 void semDestroy(semADT sem);

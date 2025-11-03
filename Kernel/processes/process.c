@@ -87,8 +87,8 @@ Process * createProcess(void * function, int argc, char ** argv, int priority, i
     process->stack_base = stack_base;
     process->rip = function;
     process->argv = NULL;
-    process->waiting_for_child = -1;
     process->is_background = is_background;
+    process->waiting_for_child = -1;
 
     // copiar argumentos
     if (argc > 0) {

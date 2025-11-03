@@ -98,6 +98,8 @@ char command_history_buffer[MAX_BUFFER_SIZE] = {0};
 uint8_t command_history_last = 0;
 
 static uint64_t last_command_output = 0;
+static uint8_t current_command_background = 0;
+static int32_t last_spawned_pid = -1;
 
 int main() {
     clear();
@@ -120,7 +122,29 @@ int main() {
         buffer[buffer_dim] = 0;
         command_history_buffer[buffer_dim] = 0;
 
-        if(buffer_dim == MAX_BUFFER_SIZE){
+        int entered_length = buffer_dim;
+        uint8_t run_in_background = 0;
+
+        int effective_dim = buffer_dim;
+        while (effective_dim > 0 && buffer[effective_dim - 1] == ' ') {
+            effective_dim--;
+            buffer[effective_dim] = 0;
+        }
+
+        if (effective_dim > 0 && buffer[effective_dim - 1] == '&') {
+            run_in_background = 1;
+            effective_dim--;
+            buffer[effective_dim] = 0;
+
+            while (effective_dim > 0 && buffer[effective_dim - 1] == ' ') {
+                effective_dim--;
+                buffer[effective_dim] = 0;
+            }
+        }
+
+        buffer_dim = effective_dim;
+
+        if(entered_length == MAX_BUFFER_SIZE){
             perror("\e[0;31mShell buffer overflow\e[0m\n");
             buffer[0] = buffer_dim = 0;
             while (c != '\n') c = getchar();
@@ -134,11 +158,21 @@ int main() {
 
         for (; i < sizeof(commands) / sizeof(Command); i++) {
             if (strcmp(commands[i].name, command) == 0) {
+                current_command_background = run_in_background;
+                last_spawned_pid = -1;
                 last_command_output = commands[i].function();
+                current_command_background = 0;
+
+                size_t history_length = entered_length < 255 ? entered_length : 255;
                 strncpy(command_history[command_history_last], command_history_buffer, 255);
-                command_history[command_history_last][buffer_dim] = '\0';
+                command_history[command_history_last][history_length] = '\0';
                 INC_MOD(command_history_last, HISTORY_SIZE);
                 last_command_arrowed = command_history_last;
+
+                if (!run_in_background && last_spawned_pid > 0) {
+                    waitPid(last_spawned_pid);
+                }
+                last_spawned_pid = -1;
                 break;
             }
         }
@@ -480,12 +514,17 @@ int _test_mm(void){ //MODIFICAR, hasta ahora se lanza como funcion, al implement
 
     if (size_str == NULL || strtok(NULL, " ") != NULL) {
         perror("Usage: _test_mm <max_memory>\n");
-        return 1;
+        return -1;
     }
 
     uint8_t * args[] = { (uint8_t *)"test_mm", (uint8_t *)size_str };
-    int32_t pid = createProcess((void *)test_mm, 2, args, 0);
-    return (int)pid;
+    int32_t pid = createProcess((void *)test_mm, 2, args, current_command_background);
+    if (pid == -1) {
+        perror("_test_mm: failed to create process\n");
+        return -1;
+    }
+    last_spawned_pid = pid;
+    return 0;
 }
 
 int _test_processes(void){
@@ -493,20 +532,21 @@ int _test_processes(void){
 
     if (max_proc_str == NULL || strtok(NULL, " ") != NULL) {
         perror("Usage: _test_processes <max_processes>\n");
-        return 1;
+        return -1;
     }
 
     /* Launch the test as a separate process so the shell isn't disrupted
        if the test blocks/kills processes or runs indefinitely. */
     uint8_t * args[] = { (uint8_t *)"test_processes", (uint8_t *)max_proc_str };
-    int32_t pid = createProcess((void *)test_processes, 2, args, 0);
+    int32_t pid = createProcess((void *)test_processes, 2, args, current_command_background);
 
     if (pid == -1) {
         perror("_test_processes: failed to create process\n");
-        return 1;
+        return -1;
     }
 
     printf("_test_processes: started test as process %d\n", pid);
+    last_spawned_pid = pid;
     return 0;
 }
 
@@ -515,20 +555,21 @@ int _test_prio(void){
 
     if (max_value_str == NULL || strtok(NULL, " ") != NULL) {
         perror("Usage: _test_prio <max_value>\n");
-        return 1;
+        return -1;
     }
 
     /* Launch the test as a separate process so the shell isn't disrupted
        if the test blocks/kills processes or runs indefinitely. */
     uint8_t * args[] = { (uint8_t *)"test_prio", (uint8_t *)max_value_str };
-    int32_t pid = createProcess((void *)test_prio, 2, args, 0);
+    int32_t pid = createProcess((void *)test_prio, 2, args, current_command_background);
 
     if (pid == -1) {
         perror("_test_prio: failed to create process\n");
-        return 1;
+        return -1;
     }
 
     printf("_test_prio: started test as process %d\n", pid);
+    last_spawned_pid = pid;
     return 0;
 }
 

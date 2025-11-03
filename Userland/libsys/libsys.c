@@ -130,3 +130,7 @@ int32_t nice(int pid, int newPriority){
 int32_t waitPid(int pid){
     return sys_wait_pid(pid);
 }
+/* 0x80000208 */
+int32_t yield(void){
+    return sys_yield();
+}

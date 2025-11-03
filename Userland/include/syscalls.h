@@ -189,7 +189,8 @@ int32_t sys_ps(ProcessInformation * processInfoTable);
 int32_t sys_nice(int pid, int newPriority);
 /* 0x80000207 */
 int32_t sys_wait_pid(int pid);
-
+/* 0x80000208 */
+int32_t sys_yield(void);
 // ==========================================================================
 
 #endif

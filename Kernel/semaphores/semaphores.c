@@ -53,6 +53,11 @@ semADT semInit(const char *name, uint32_t initial_count){
     sem->count = initial_count;
     sem->lock = 0;
     sem->blocked_processes = createQueue(cmpInt, sizeof(int));
+    if( sem->blocked_processes == NULL) {
+        myFree(sem->name);
+        myFree(sem);
+        return NULL;
+    }
 
     semLock(&queueLock);
     if (!queueElementExists(semaphoreQueue, &sem)) {
@@ -98,6 +103,7 @@ int wait(semADT sem){
     }
     return 0;
 }
+
 void semDestroy(semADT sem){
     if (sem == NULL) {
         return;

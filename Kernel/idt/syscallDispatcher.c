@@ -68,6 +68,7 @@ int32_t syscallDispatcher(Registers * registers) {
 		case 0x80000205: return sys_ps((ProcessInformation *) registers->rdi);
 		case 0x80000206: return sys_nice((int) registers->rdi, (int) registers->rsi);
 		case 0x80000207: return sys_wait_pid((int) registers->rdi);
+		case 0x80000208: return sys_yield();
 		
 		default:
             return 0;
@@ -317,4 +318,9 @@ int32_t sys_nice(int pid, int newPriority) {
 
 int32_t sys_wait_pid(int pid) {
 	return waitPid(pid);
+}
+
+int32_t sys_yield(void) {
+	yield();
+	return 0;
 }

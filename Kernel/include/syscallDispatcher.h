@@ -86,6 +86,7 @@ int32_t sys_kill(int pid);
 int32_t sys_nice(int pid, int newPriority);
 int32_t sys_wait_pid(int pid);
 int32_t sys_ps(ProcessInformation * processInfoTable);
+int32_t sys_yield(void);
 // =========================================================
 
 
