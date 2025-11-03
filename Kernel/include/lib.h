@@ -18,5 +18,7 @@ uint8_t getMinute(void);
 uint8_t getHour(void);
 
 uint8_t * stackInit(void * rsp, void * rip, int argc, char ** argv);
+void semLock(uint8_t *lock);
+void semUnlock(uint8_t *lock);
 
 #endif
