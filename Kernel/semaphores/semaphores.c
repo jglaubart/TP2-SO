@@ -21,7 +21,20 @@ uint8_t queueLock = 0;
 int cmpSem(void * sem_a, void * sem_b) {
     semADT a = sem_a == NULL ? NULL : *((semADT *)sem_a);
     semADT b = sem_b == NULL ? NULL : *((semADT *)sem_b);
-    return (a != b);
+
+    if (a == b) {
+        return 0;
+    }
+
+    if (a == NULL || b == NULL) {
+        return 1;
+    }
+
+    if (a->name == NULL || b->name == NULL) {
+        return (a->name != b->name);
+    }
+
+    return strcmp(a->name, b->name);
 }
 
 static int cmpInt(void *a, void *b) {
