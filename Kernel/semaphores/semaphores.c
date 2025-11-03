@@ -19,11 +19,35 @@ static QueueADT semaphoreQueue = NULL;
 uint8_t queueLock = 0;
 
 int cmpSem(void * sem_a, void * sem_b) {
-    return *((semADT *)sem_a) - *((semADT *)sem_b);
+    semADT a = sem_a == NULL ? NULL : *((semADT *)sem_a);
+    semADT b = sem_b == NULL ? NULL : *((semADT *)sem_b);
+    return (a != b);
 }
 
 static int cmpInt(void *a, void *b) {
     return *((int *)a) - *((int *)b);
+}
+
+static semADT findSemaphoreByName(const char *name) {
+    if (name == NULL || semaphoreQueue == NULL || queueIsEmpty(semaphoreQueue)) {
+        return NULL;
+    }
+
+    if (queueBeginCyclicIter(semaphoreQueue) == NULL) {
+        return NULL;
+    }
+
+    semADT current = NULL;
+    int size = queueSize(semaphoreQueue);
+
+    for (int i = 0; i < size; i++) {
+        queueNextCyclicIter(semaphoreQueue, &current);
+        if (strcmp(current->name, name) == 0) {
+            return current;
+        }
+    }
+
+    return NULL;
 }
 
 int initSemaphoreQueue(void) {
@@ -38,6 +62,32 @@ semADT semInit(const char *name, uint32_t initial_count){
     if (name == NULL) {
         return NULL;
     }
+
+    if (semaphoreQueue == NULL) {
+        QueueADT newQueue = createQueue(cmpSem, sizeof(semADT));
+        if (newQueue == NULL) {
+            return NULL;
+        }
+
+        semLock(&queueLock);
+        if (semaphoreQueue == NULL) {
+            semaphoreQueue = newQueue;
+            newQueue = NULL;
+        }
+        semUnlock(&queueLock);
+
+        if (newQueue != NULL) {
+            queueFree(newQueue);
+        }
+    }
+
+    semLock(&queueLock);
+    semADT existing = findSemaphoreByName(name);
+    if (existing != NULL) {
+        semUnlock(&queueLock);
+        return existing;
+    }
+    semUnlock(&queueLock);
 
     semADT sem = myMalloc(sizeof(struct semCDT));
     if (sem == NULL) {
@@ -60,8 +110,21 @@ semADT semInit(const char *name, uint32_t initial_count){
     }
 
     semLock(&queueLock);
-    if (!queueElementExists(semaphoreQueue, &sem)) {
-        enqueue(semaphoreQueue, &sem);
+    existing = findSemaphoreByName(name);
+    if (existing != NULL) {
+        semUnlock(&queueLock);
+        queueFree(sem->blocked_processes);
+        myFree(sem->name);
+        myFree(sem);
+        return existing;
+    }
+
+    if (enqueue(semaphoreQueue, &sem) == NULL) {
+        semUnlock(&queueLock);
+        queueFree(sem->blocked_processes);
+        myFree(sem->name);
+        myFree(sem);
+        return NULL;
     }
     semUnlock(&queueLock);
     return sem;
@@ -100,7 +163,6 @@ int wait(semADT sem){
         enqueue(sem->blocked_processes, &pid);
         semUnlock(&sem->lock);
         block(pid);
-        yield();
     }
     return 0;
 }

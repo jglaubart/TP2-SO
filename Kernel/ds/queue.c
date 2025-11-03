@@ -207,17 +207,18 @@ int queueIteratorIsInitialized(QueueADT queue) {
 }
 
 int queueElementExists(QueueADT queue, void *data) {
-	int size = queueSize(queue);
-	void *buffer = myMalloc(queue->dataSize);
-	int found = 0;
-
-	queueBeginCyclicIter(queue);
-	for (int i = 0; i < size && !found; i++) {
-		queueNextCyclicIter(queue, buffer);
-		if (queue->cmp(buffer, data) == 0) {
-			found = 1;
-		}
+	if (queue == NULL || queue->cmp == NULL) {
+		return 0;
 	}
-	myFree(buffer);
-	return found;
+
+	struct Node *current = queue->head;
+
+	while (current != NULL) {
+		if (queue->cmp(current->data, data) == 0) {
+			return 1;
+		}
+		current = current->next;
+	}
+
+	return 0;
 }
