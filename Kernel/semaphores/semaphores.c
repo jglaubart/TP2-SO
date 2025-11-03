@@ -72,15 +72,16 @@ int post(semADT sem){
         return -1;
     }
 
-    semLock(&queueLock);
+    semLock(&sem->lock);
     if(queueIsEmpty(sem->blocked_processes)) {
         sem->count++;
+        semUnlock(&sem->lock);
     } else {
         int pid;
         dequeue(sem->blocked_processes, &pid);
+        semUnlock(&sem->lock);
         unblock(pid);
     }
-    semUnlock(&queueLock);
     return 0;
 }
 
@@ -89,15 +90,15 @@ int wait(semADT sem){
         return -1;
     }
 
-    semLock(&queueLock);
+    semLock(&sem->lock);
     if (sem->count > 0) {
         sem->count--;
-        semUnlock(&queueLock);
+        semUnlock(&sem->lock);
     } else {
         Process * currentProcess = getCurrentProcess();
         int pid = currentProcess->pid;
         enqueue(sem->blocked_processes, &pid);
-        semUnlock(&queueLock);
+        semUnlock(&sem->lock);
         block(pid);
         yield();
     }
