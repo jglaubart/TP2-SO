@@ -34,13 +34,20 @@ int initSemaphoreQueue() {
     return 0;
 }
 
-void semInit(semADT sem, const char *name, uint32_t initial_count){
-    if(sem == NULL || name == NULL){
-        return;
+semADT semInit(const char *name, uint32_t initial_count){
+    if (name == NULL) {
+        return NULL;
     }
+
+    semADT sem = myMalloc(sizeof(struct semCDT));
+    if (sem == NULL) {
+        return NULL;
+    }
+
     sem->name = myMalloc(strlen(name) + 1);
     if (sem->name == NULL) {
-        return;
+        myFree(sem);
+        return NULL;
     }
     strcpy(sem->name, name);
     sem->count = initial_count;
@@ -52,6 +59,7 @@ void semInit(semADT sem, const char *name, uint32_t initial_count){
         enqueue(semaphoreQueue, &sem);
     }
     semUnlock(&queueLock);
+    return sem;
 }
 
 int post(semADT sem){
@@ -91,4 +99,22 @@ int wait(semADT sem){
     }
     return 0;
 }
-void semDestroy(semADT sem){}
+void semDestroy(semADT sem){
+    if (sem == NULL) {
+        return;
+    }
+
+    semLock(&queueLock);
+    queueRemove(semaphoreQueue, &sem);
+    semUnlock(&queueLock);
+
+    // Unblock all processes waiting on this semaphore
+    while (!queueIsEmpty(sem->blocked_processes)) {
+        int pid;
+        dequeue(sem->blocked_processes, &pid);
+        unblock(pid); 
+    }
+    queueFree(sem->blocked_processes);
+    myFree(sem->name);
+    myFree(sem);
+}
