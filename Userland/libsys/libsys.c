@@ -134,3 +134,21 @@ int32_t waitPid(int pid){
 int32_t yield(void){
     return sys_yield();
 }
+
+// Semaphore management syscall prototypes
+/* 0x80000300 */
+void * semInit(const char *name, uint32_t initial_count){
+    return sys_sem_init(name, initial_count);
+}
+/* 0x80000301 */
+int32_t semPost(void * sem){
+    return sys_sem_post(sem);
+}
+/* 0x80000302 */
+int32_t semWait(void * sem){
+    return sys_sem_wait(sem);
+}
+/* 0x80000303 */
+int32_t semDestroy(void * sem){
+    return sys_sem_destroy(sem);
+}

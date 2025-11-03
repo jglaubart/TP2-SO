@@ -193,4 +193,15 @@ int32_t sys_wait_pid(int pid);
 int32_t sys_yield(void);
 // ==========================================================================
 
+// ================== Semaphore management syscall prototypes =================
+
+/* 0x80000300 */
+void * sys_sem_init(const char *name, uint32_t initial_count);
+/* 0x80000301 */
+int32_t sys_sem_post(void * sem);
+/* 0x80000302 */
+int32_t sys_sem_wait(void * sem);
+/* 0x80000303 */
+int32_t sys_sem_destroy(void * sem);
+
 #endif

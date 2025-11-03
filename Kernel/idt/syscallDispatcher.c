@@ -69,6 +69,11 @@ int32_t syscallDispatcher(Registers * registers) {
 		case 0x80000206: return sys_nice((int) registers->rdi, (int) registers->rsi);
 		case 0x80000207: return sys_wait_pid((int) registers->rdi);
 		case 0x80000208: return sys_yield();
+
+		case 0x80000300: return (int64_t)sys_sem_init((const char *) registers->rdi, (uint32_t) registers->rsi);
+		case 0x80000301: return sys_sem_post((semADT) registers->rdi);
+		case 0x80000302: return sys_sem_wait((semADT) registers->rdi);
+		case 0x80000303: return sys_sem_destroy((semADT) registers->rdi);
 		
 		default:
             return 0;
@@ -324,3 +329,25 @@ int32_t sys_yield(void) {
 	yield();
 	return 0;
 }
+
+// ==================================================================
+// Semaphore management system calls
+// ==================================================================
+
+semADT sys_sem_init(const char *name, uint32_t initial_count) {
+	return semInit(name, initial_count);
+}
+
+int32_t sys_sem_post(semADT sem) {
+	return post(sem);
+}
+
+int32_t sys_sem_wait(semADT sem) {
+	return wait(sem);
+}
+
+int32_t sys_sem_destroy(semADT sem) {
+	semDestroy(sem);
+	return 0;
+}
+// =========================================================

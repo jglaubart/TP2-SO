@@ -44,4 +44,9 @@ int32_t waitPid(int pid);
 int32_t ps(ProcessInformation * processInfoTable);
 int32_t yield(void);
 
+void * semInit(const char *name, uint32_t initial_count);
+int32_t semPost(void * sem);
+int32_t semWait(void * sem);
+int32_t semDestroy(void * sem);
+
 #endif

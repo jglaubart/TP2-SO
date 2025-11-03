@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <keyboard.h>
 #include <process.h>
+#include <semaphores.h>
+
 
 typedef struct {
     int64_t r15;
@@ -87,6 +89,13 @@ int32_t sys_nice(int pid, int newPriority);
 int32_t sys_wait_pid(int pid);
 int32_t sys_ps(ProcessInformation * processInfoTable);
 int32_t sys_yield(void);
+// =========================================================
+
+// =============== Semaphore management syscalls ================
+semADT sys_sem_init(const char *name, uint32_t initial_count);
+int32_t sys_sem_post(semADT sem);
+int32_t sys_sem_wait(semADT sem);
+int32_t sys_sem_destroy(semADT sem);
 // =========================================================
 
 
