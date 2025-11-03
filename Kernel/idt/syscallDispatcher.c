@@ -61,13 +61,13 @@ int32_t syscallDispatcher(Registers * registers) {
 		case 0x80000102: return sys_memstats((int *) registers->rdi, (int *) registers->rsi, (int *) registers->rdx);
 
 		case 0x80000200: return sys_getpid();
-		case 0x80000201: return sys_create_process((uint8_t *) registers->rdi, registers->rsi, (char **) registers->rdx);
+		case 0x80000201: return sys_create_process((uint8_t *) registers->rdi, registers->rsi, (char **) registers->rdx, (uint8_t) registers->rcx);
 		case 0x80000202: return sys_unblock((int) registers->rdi);
 		case 0x80000203: return sys_block((int) registers->rdi);
 		case 0x80000204: return sys_kill((int) registers->rdi);
 		case 0x80000205: return sys_ps((ProcessInformation *) registers->rdi);
 		case 0x80000206: return sys_nice((int) registers->rdi, (int) registers->rsi);
-		case 0x80000207: return sys_wait((int) registers->rdi);
+		case 0x80000207: return sys_wait_pid((int) registers->rdi);
 		
 		default:
             return 0;
@@ -277,7 +277,7 @@ int32_t sys_getpid(void) {
 	}
 	return currentProcess->pid;
 }
-int32_t sys_create_process(void * function, int argc, char ** argv) {
+int32_t sys_create_process(void * function, int argc, char ** argv, uint8_t is_background) {
 	Process * parent = getCurrentProcess();
 	int priority = MID_PRIORITY;
 	int parentID = -1;
@@ -287,7 +287,7 @@ int32_t sys_create_process(void * function, int argc, char ** argv) {
 		parentID = parent->pid;
 	}
 
-	Process * newProcess = createProcess(function, argc, argv, priority, parentID);
+	Process * newProcess = createProcess(function, argc, argv, priority, parentID, is_background);
 	if (newProcess == NULL) {
 		return -1; // Indicate failure to create process
 	}
@@ -315,6 +315,6 @@ int32_t sys_nice(int pid, int newPriority) {
 	return nice(pid, newPriority);
 }
 
-int32_t sys_wait(int pid) {
-	return wait(pid);
+int32_t sys_wait_pid(int pid) {
+	return waitPid(pid);
 }

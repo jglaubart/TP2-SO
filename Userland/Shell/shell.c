@@ -484,7 +484,7 @@ int _test_mm(void){ //MODIFICAR, hasta ahora se lanza como funcion, al implement
     }
 
     uint8_t * args[] = { (uint8_t *)"test_mm", (uint8_t *)size_str };
-    int32_t pid = createProcess((void *)test_mm, 2, args);
+    int32_t pid = createProcess((void *)test_mm, 2, args, 0);
     return (int)pid;
 }
 
@@ -499,7 +499,7 @@ int _test_processes(void){
     /* Launch the test as a separate process so the shell isn't disrupted
        if the test blocks/kills processes or runs indefinitely. */
     uint8_t * args[] = { (uint8_t *)"test_processes", (uint8_t *)max_proc_str };
-    int32_t pid = createProcess((void *)test_processes, 2, args);
+    int32_t pid = createProcess((void *)test_processes, 2, args, 0);
 
     if (pid == -1) {
         perror("_test_processes: failed to create process\n");
@@ -521,7 +521,7 @@ int _test_prio(void){
     /* Launch the test as a separate process so the shell isn't disrupted
        if the test blocks/kills processes or runs indefinitely. */
     uint8_t * args[] = { (uint8_t *)"test_prio", (uint8_t *)max_value_str };
-    int32_t pid = createProcess((void *)test_prio, 2, args);
+    int32_t pid = createProcess((void *)test_prio, 2, args, 0);
 
     if (pid == -1) {
         perror("_test_prio: failed to create process\n");

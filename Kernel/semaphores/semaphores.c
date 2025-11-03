@@ -26,7 +26,7 @@ static int cmpInt(void *a, void *b) {
     return *((int *)a) - *((int *)b);
 }
 
-int initSemaphoreQueue() {
+int initSemaphoreQueue(void) {
     semaphoreQueue = createQueue(cmpSem, sizeof(semADT));
     if (semaphoreQueue == NULL) {
         return -1;
@@ -66,7 +66,6 @@ int post(semADT sem){
     if (sem == NULL) {
         return -1;
     }
-
 
     semLock(&queueLock);
     if(queueIsEmpty(sem->blocked_processes)) {

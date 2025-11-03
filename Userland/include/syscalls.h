@@ -176,7 +176,7 @@ typedef struct ProcessInformation{
 /* 0x80000200 */
 int32_t sys_getpid(void);
 /* 0x80000201 */
-int32_t sys_create_process(void * function, uint64_t argc, uint8_t ** argv);
+int32_t sys_create_process(void * function, uint64_t argc, uint8_t ** argv, uint8_t is_background);
 /* 0x80000202 */
 int32_t sys_unblock(int pid);
 /* 0x80000203 */
@@ -188,7 +188,7 @@ int32_t sys_ps(ProcessInformation * processInfoTable);
 /* 0x80000206 */
 int32_t sys_nice(int pid, int newPriority);
 /* 0x80000207 */
-int32_t sys_wait(int pid);
+int32_t sys_wait_pid(int pid);
 
 // ==========================================================================
 

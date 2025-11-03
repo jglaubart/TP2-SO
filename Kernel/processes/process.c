@@ -54,7 +54,7 @@ int getNextPid(void) {
 }
 
 
-Process * createProcess(void * function, int argc, char ** argv, int priority, int parentID){
+Process * createProcess(void * function, int argc, char ** argv, int priority, int parentID, uint8_t is_background){
     // validaciones iniciales
     if(function == NULL || argc < 0 || priority < 0){
         return NULL;
@@ -88,6 +88,7 @@ Process * createProcess(void * function, int argc, char ** argv, int priority, i
     process->rip = function;
     process->argv = NULL;
     process->waiting_for_child = -1;
+    process->is_background = is_background;
 
     // copiar argumentos
     if (argc > 0) {
@@ -293,7 +294,7 @@ int nice(int pid, int newPriority) {
     return 0;
 }
 
-int wait(int pid) {
+int waitPid(int pid) {
     // Validate target PID
     if (!checkValidPid(pid)) {
         return -1;

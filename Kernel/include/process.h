@@ -31,6 +31,7 @@ typedef struct Process {
     uint8_t * rip;   //function
     uint8_t * rsp;
     int waiting_for_child; // PID of child this process is waiting for (-1 if not waiting)
+    uint8_t is_background; // 1 if the process was launched in background mode
 } Process;
 
 typedef struct ProcessInformation{
@@ -43,7 +44,7 @@ typedef struct ProcessInformation{
 } ProcessInformation;
 
 int getNextPid(void);
-Process * createProcess(void * function, int argc, char ** argv, int priority, int parentID);
+Process * createProcess(void * function, int argc, char ** argv, int priority, int parentID, uint8_t is_background);
 void freeProcess(Process * p);
 int initPCBTable();
 
@@ -51,7 +52,7 @@ int kill(int pid);
 int block(int pid);
 int unblock(int pid);
 int nice(int pid, int newPriority);
-int wait(int pid);
+int waitPid(int pid);
 Process * getProcess(int pid);
 int getProcessInfo(int pid, ProcessInformation * info);
 int ps(ProcessInformation * processInfoTable); // Always recieves a table of MAX_PROCESSES size

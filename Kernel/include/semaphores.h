@@ -6,9 +6,14 @@
 
 typedef struct semCDT * semADT;
 
-void semInit(semADT sem, const char *name, uint32_t initial_count);
+semADT semInit(semADT sem, const char *name, uint32_t initial_count);
 int post(semADT sem);
 int wait(semADT sem);
 void semDestroy(semADT sem);
+
+void semLock(uint8_t *lock);
+void semUnlock(uint8_t *lock);
+
+int initSemaphoreQueue(void);
 
 #endif

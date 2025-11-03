@@ -63,7 +63,7 @@ int main(){
 	char ** argv = myMalloc(sizeof(char *) * 2);
 	argv[0] = "shell";
 	argv[1] = NULL;
-	createProcess(shellModuleAddress, 1, argv, MID_PRIORITY, 1);
+	createProcess(shellModuleAddress, 1, argv, MID_PRIORITY, 1, 0);
 
 	_sti();   // kernel starts running idle until interrupts are enabled. Changes to shell with the first timer interrupt.
 	
@@ -72,4 +72,3 @@ int main(){
 
 	return 0;
 }
-

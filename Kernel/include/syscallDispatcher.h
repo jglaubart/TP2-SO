@@ -79,12 +79,12 @@ int32_t sys_memstats(int * total, int * used, int * available);
 
 // =============== Process management syscalls ================
 int32_t sys_getpid(void);
-int32_t sys_create_process(void * function, int argc, char ** argv);
+int32_t sys_create_process(void * function, int argc, char ** argv, uint8_t is_background);
 int32_t sys_unblock(int pid);
 int32_t sys_block(int pid);
 int32_t sys_kill(int pid);
 int32_t sys_nice(int pid, int newPriority);
-int32_t sys_wait(int pid);
+int32_t sys_wait_pid(int pid);
 int32_t sys_ps(ProcessInformation * processInfoTable);
 // =========================================================
 

@@ -104,8 +104,8 @@ int32_t getPid(void){
     return sys_getpid();
 }
 /* 0x80000201 */
-int32_t createProcess(void * function, uint64_t argc, uint8_t ** argv){
-    return sys_create_process(function, argc, argv);
+int32_t createProcess(void * function, uint64_t argc, uint8_t ** argv, uint8_t is_background){
+    return sys_create_process(function, argc, argv, is_background);
 }
 /* 0x80000202 */
 int32_t unblock(int pid){
@@ -127,6 +127,6 @@ int32_t nice(int pid, int newPriority){
     return sys_nice(pid, newPriority);
 }
 /* 0x80000207 */
-int32_t wait(int pid){
-    return sys_wait(pid);
+int32_t waitPid(int pid){
+    return sys_wait_pid(pid);
 }
