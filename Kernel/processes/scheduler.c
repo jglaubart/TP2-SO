@@ -107,7 +107,16 @@ uint8_t *schedule(uint8_t *rsp) {
     
     Process *nextProcess = NULL;
     if (dequeue(scheduler->readyQueue, &nextProcess) == NULL || nextProcess == NULL) {
-        panic("No process available to schedule.");
+        /*
+         * No ready process available in the ready queue. Previously this
+         * triggered a panic which halts the system. Instead of panicking,
+         * fallback to the idle process so the scheduler remains robust when
+         * there are temporarily no runnable processes.
+         */
+        nextProcess = scheduler->idleProcess;
+        if (nextProcess == NULL) {
+            panic("No process available to schedule.");
+        }
     }
 
     nextProcess->state = PROCESS_STATE_RUNNING;

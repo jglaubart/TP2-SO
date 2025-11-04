@@ -10,9 +10,9 @@
 #define PROCESS_NAME_MAX_LENGTH 64
 
 typedef enum {
-    MIN_PRIORITY = 1,
-    MID_PRIORITY = 5,
-    MAX_PRIORITY = 10
+    MIN_PRIORITY = 0,
+    MID_PRIORITY,
+    MAX_PRIORITY
 } ProcessPriority;
 
 typedef enum ProcessState {
