@@ -603,7 +603,7 @@ int _ps(void){ //MODOFICAR, ver de hacer mas corto o mover de archivo
 
     int max_name_length = 4;
 	for (int i = 0; i < count; i++) {
-        int len = processInfo[i].name ? (int)strlen(processInfo[i].name) : 0;
+        int len = processInfo[i].name[0] ? (int)strlen(processInfo[i].name) : 0;
 		if (len > max_name_length) {
 			max_name_length = len;
 		}
@@ -636,7 +636,7 @@ int _ps(void){ //MODOFICAR, ver de hacer mas corto o mover de archivo
 	       padding_header, padding_state_header);
 
     for (int i = 0; i < count; i++) {
-        const char *name = processInfo[i].name ? processInfo[i].name : "<unnamed>";
+        const char *name = processInfo[i].name[0] ? processInfo[i].name : "<unnamed>";
         int name_len = (int)strlen(name);
         int padding_len = max_name_length - name_len + 2;
         if (padding_len < 2) {

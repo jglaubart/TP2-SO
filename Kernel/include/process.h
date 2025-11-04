@@ -7,10 +7,13 @@
 #define IDLE_PROCESS_PID 0
 #define INIT_PROCESS_PID 1
 #define SHELL_PROCESS_PID 2
-#define MAX_PRIORITY 2
-#define MIN_PRIORITY 0
-#define MID_PRIORITY 1
+#define PROCESS_NAME_MAX_LENGTH 64
 
+typedef enum {
+    MIN_PRIORITY = 1,
+    MID_PRIORITY = 5,
+    MAX_PRIORITY = 10
+} ProcessPriority;
 
 typedef enum ProcessState {
     PROCESS_STATE_READY,
@@ -36,7 +39,7 @@ typedef struct Process {
 
 typedef struct ProcessInformation{
     int pid;
-    char * name;
+    char name[PROCESS_NAME_MAX_LENGTH];
     int priority;
     ProcessState state;
     uint8_t * rsp;
@@ -44,8 +47,9 @@ typedef struct ProcessInformation{
 } ProcessInformation;
 
 int getNextPid(void);
-Process * createProcess(void * function, int argc, char ** argv, int priority, int parentID, uint8_t is_background);
+Process * createProcess(void * function, int argc, char ** argv, ProcessPriority priority, int parentID, uint8_t is_background);
 void freeProcess(Process * p);
+void processCleanupTerminated(Process *exclude);
 int initPCBTable();
 
 int kill(int pid);
@@ -56,6 +60,7 @@ int waitPid(int pid);
 Process * getProcess(int pid);
 int getProcessInfo(int pid, ProcessInformation * info);
 int ps(ProcessInformation * processInfoTable); // Always recieves a table of MAX_PROCESSES size
+int changePriority(int pid, ProcessPriority newPriority);
 
 
 #endif

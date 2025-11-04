@@ -71,6 +71,8 @@ int initScheduler() {
 }
 
 uint8_t *schedule(uint8_t *rsp) {
+    processCleanupTerminated(scheduler == NULL ? NULL : scheduler->currentProcess);
+
     if (scheduler->currentProcess != NULL) {
         // On the first interrupt, we're still in kernel context, not in the idle process context.
         // Don't overwrite the idle process's properly initialized stack frame.

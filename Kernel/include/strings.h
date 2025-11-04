@@ -6,5 +6,6 @@
 void strcpy(char *dest, const char *src);
 int strcmp(const char *str1, const char *str2);
 int64_t strlen(const char *str);
+void strncpy(char * dest, char * src, int n);
 
 #endif

@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define PROCESS_NAME_MAX_LENGTH 64
+
 // Enum of registerable keys.
 // Note: Does not include TAB or RETURN
 enum REGISTERABLE_KEYS {
@@ -166,7 +168,7 @@ typedef enum ProcessState {
 
 typedef struct ProcessInformation{
     int pid;
-    char * name;
+    char name[PROCESS_NAME_MAX_LENGTH];
     int priority;
     ProcessState state;
     uint8_t * rsp;

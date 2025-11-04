@@ -14,6 +14,55 @@ typedef struct pcb_table {
 
 static pcb_table * PCBTable = NULL;
 
+static Process *terminatedQueue[MAX_PROCESSES];
+static int terminatedCount = 0;
+
+static void enqueueTerminatedProcess(Process *process) {
+    if (process == NULL) {
+        return;
+    }
+
+    for (int i = 0; i < terminatedCount; i++) {
+        if (terminatedQueue[i] == process) {
+            return;
+        }
+    }
+
+    if (terminatedCount >= MAX_PROCESSES) {
+        panic("Terminated process queue overflow");
+    }
+
+    terminatedQueue[terminatedCount++] = process;
+}
+
+void processCleanupTerminated(Process *exclude) {
+    if (terminatedCount == 0) {
+        return;
+    }
+
+    int writeIndex = 0;
+
+    for (int i = 0; i < terminatedCount; i++) {
+        Process *process = terminatedQueue[i];
+        if (process == NULL) {
+            continue;
+        }
+
+        if (process == exclude) {
+            terminatedQueue[writeIndex++] = process;
+            continue;
+        }
+
+        freeProcess(process);
+    }
+
+    for (int i = writeIndex; i < terminatedCount; i++) {
+        terminatedQueue[i] = NULL;
+    }
+
+    terminatedCount = writeIndex;
+}
+
 int initPCBTable() {
     if (PCBTable != NULL) {
 		panic("PCB already initialized");
@@ -53,10 +102,23 @@ int getNextPid(void) {
     return -1;
 }
 
+int changePriority(int pid, ProcessPriority newPriority) {
+    if (pid < 0 || pid >= MAX_PROCESSES || newPriority < MIN_PRIORITY || newPriority > MAX_PRIORITY) {
+        return -1;
+    }
 
-Process * createProcess(void * function, int argc, char ** argv, int priority, int parentID, uint8_t is_background){
+    Process * process = PCBTable->processes[pid];
+    if (process == NULL) {
+        return -1;
+    }
+
+    process->priority = newPriority;
+    return 0;
+}
+
+Process * createProcess(void * function, int argc, char ** argv, ProcessPriority priority, int parentID, uint8_t is_background){
     // validaciones iniciales
-    if(function == NULL || argc < 0 || priority < 0){
+    if(function == NULL || argc < 0 || priority < 0 || (argc > 0 && argv == NULL)){
         return NULL;
     }
 
@@ -90,37 +152,31 @@ Process * createProcess(void * function, int argc, char ** argv, int priority, i
     process->is_background = is_background;
     process->waiting_for_child = -1;
 
-    // copiar argumentos
-    if (argc > 0) {
-		process->argv = (char **) myMalloc(sizeof(char *) * process->argc);
-		if (process->argv == NULL) {
-            myFree(process);
-            myFree(stack_base);
-			return NULL;
-		}
-
-        for (int i = 0; i < argc; i++) {
-            int len = strlen(argv[i]);
-            process->argv[i] = (char *) myMalloc(sizeof(char) * (len + 1));
-            // si cualquier reserva falla, liberar todo lo reservado hasta el momento
-            if (process->argv[i] == NULL) {
-                for (int j = 0; j < i; j++) {
-                    myFree(process->argv[j]);
-                }
-                myFree(process->argv);
-                myFree(process);
-                myFree(stack_base);
-                return NULL;
-            }
-            strcpy(process->argv[i], argv[i]);
-            process->argv[i][len] = '\0';
-	    }
-	}
-    else {
-        process->argv = NULL;
+    process->argv = (char **) myMalloc(sizeof(char *) * (process->argc + 1));
+    if (process->argv == NULL) {
+        myFree(process);
+        myFree(stack_base);
+        return NULL;
     }
 
-    process->name = (process->argv != NULL && process->argc > 0) ? process->argv[0] : NULL;
+    for (int i = 0; i < argc; i++) {
+        int len = strlen(argv[i]);
+        process->argv[i] = (char *) myMalloc(sizeof(char) * (len + 1));
+        if (process->argv[i] == NULL) {
+            for (int j = 0; j < i; j++) {
+                myFree(process->argv[j]);
+            }
+            myFree(process->argv);
+            myFree(process);
+            myFree(stack_base);
+            return NULL;
+        }
+        strcpy(process->argv[i], argv[i]);
+        process->argv[i][len] = '\0';
+    }
+    process->argv[argc] = NULL;
+
+    process->name = (process->argc > 0) ? process->argv[0] : NULL;
 
     uint8_t * initial_rsp = stackInit(stack_top, function, process->argc, process->argv);
     if (initial_rsp == NULL) {
@@ -171,10 +227,13 @@ void freeProcess(Process * p){
         p->stack_base = NULL;
     }
 
-    for (int i = 0; i < p->argc; i++) {
-        myFree(p->argv[i]);
+    if (p->argv != NULL) {
+        for (int i = 0; i < p->argc; i++) {
+            myFree(p->argv[i]);
+        }
+        myFree(p->argv);
+        p->argv = NULL;
     }
-    myFree(p->argv);
     // Liberar memoria reservada para el proceso
     myFree(p);
 }
@@ -200,7 +259,7 @@ static int checkValidPid(int pid) {
 }
 
 int block(int pid) {
-    if (pid == 0 || pid == 1 || !checkValidPid(pid)) {
+    if (pid == IDLE_PROCESS_PID || !checkValidPid(pid)) {
         return -1;
     }
     Process * process = getProcess(pid);
@@ -237,7 +296,16 @@ int kill(int pid) {
         return -1;
     }
     
-    removeProcessFromScheduler(process);
+    ProcessState previousState = process->state;
+    if (previousState == PROCESS_STATE_TERMINATED) {
+        return 0;
+    }
+
+    if (previousState == PROCESS_STATE_READY) {
+        if (removeProcessFromScheduler(process) == -1) {
+            return -1;
+        }
+    }
 
     // Mark process as terminated
     process->state = PROCESS_STATE_TERMINATED;
@@ -253,9 +321,11 @@ int kill(int pid) {
         }
     }
 
-    // interrupcion para hacer context switch
-    if(process->state == PROCESS_STATE_RUNNING) {
+    if (previousState == PROCESS_STATE_RUNNING) {
+        enqueueTerminatedProcess(process);
+        // interrupcion para hacer context switch
         yield();
+        return 0;
     }
 
     freeProcess(process);
@@ -347,16 +417,27 @@ int getProcessInfo(int pid, ProcessInformation * info){
         return -1;
     }
 
+    _cli();
     Process * process = getProcess(pid);
     if(process == NULL){
+        _sti();
         return -1;
     }
+
     info->pid = process->pid;
-    info->name = process->name;
+
+    if (process->name != NULL) {
+        strncpy(info->name, process->name, PROCESS_NAME_MAX_LENGTH - 1);
+        info->name[PROCESS_NAME_MAX_LENGTH - 1] = '\0';
+    } else {
+        info->name[0] = '\0';
+    }
+
     info->priority = process->priority;
     info->state = process->state;
     info->rsp = process->rsp;
     info->stack_base = process->stack_base;
+    _sti();
     return 0;
 }
 
