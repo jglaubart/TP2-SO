@@ -1,6 +1,5 @@
 #include <stddef.h>
 #include <stdint.h>
-#include <memory.h>
 
 #define MIN_BLOCK_ORDER 5
 #define MAX_BLOCK_ORDER 19
@@ -15,51 +14,35 @@ typedef enum {
 } BlockStatus;
 
 typedef struct TreeNode {
-    struct TreeNode *parent_node;
-    struct TreeNode *left_child;
-    struct TreeNode *right_child;
+    uint32_t offset;
     uint8_t block_order;
-    BlockStatus status;
-    uint8_t *mem_addr;
+    uint8_t status;
 } TreeNode;
-
-typedef struct AllocMetadata {
-    TreeNode *tree_node;
-} AllocMetadata;
 
 static uint8_t heap[TOTAL_HEAP_SIZE];
 static TreeNode tree_nodes[TOTAL_NODES];
-static TreeNode *root_node = NULL;
+static int allocator_initialized = 0;
+static int total_free_bytes = TOTAL_HEAP_SIZE;
 
 
 // FUNCIONES AUXILIARES 
 static int get_block_size(int order) {
     return (int)1u << order;
 }
-static TreeNode *build_tree(int idx, int order, uint8_t *mem_base) {
+static void build_tree(int idx, int order, uint32_t offset) {
     TreeNode *current = &tree_nodes[idx];
-    current->parent_node = NULL;
-    current->left_child = NULL;
-    current->right_child = NULL;
+    current->offset = offset;
     current->block_order = (uint8_t)order;
     current->status = STATUS_AVAILABLE;
-    current->mem_addr = mem_base;
 
     if (order > MIN_BLOCK_ORDER) {
         int left_idx = (idx * 2) + 1;
         int right_idx = left_idx + 1;
         int half_size = get_block_size(order - 1);
 
-        TreeNode *left_node = build_tree(left_idx, order - 1, mem_base);
-        TreeNode *right_node = build_tree(right_idx, order - 1, mem_base + half_size);
-
-        left_node->parent_node = current;
-        right_node->parent_node = current;
-        current->left_child = left_node;
-        current->right_child = right_node;
+        build_tree(left_idx, order - 1, offset);
+        build_tree(right_idx, order - 1, offset + (uint32_t)half_size);
     }
-
-    return current;
 }
 
 
@@ -73,119 +56,139 @@ static int calculate_order(int size) {
     return order;
 }
 
-static TreeNode *find_and_allocate(TreeNode *current, int order) {
-    if (current == NULL) {
-        return NULL;
-    }
+static int find_and_allocate(int idx, int order) {
+    TreeNode *current = &tree_nodes[idx];
 
     if (current->status == STATUS_OCCUPIED) {
-        return NULL;
+        return -1;
     }
 
     if (current->block_order < order) {
-        return NULL;
+        return -1;
     }
 
     if (current->block_order == order) {
         if (current->status == STATUS_AVAILABLE) {
             current->status = STATUS_OCCUPIED;
-            return current;
+            return idx;
         }
-        return NULL;
+        return -1;
     }
 
-    if (current->left_child == NULL || current->right_child == NULL) {
-        return NULL;
+    int left_idx = (idx * 2) + 1;
+    int right_idx = left_idx + 1;
+
+    if (right_idx >= TOTAL_NODES) {
+        return -1;
     }
 
     if (current->status == STATUS_AVAILABLE) {
         current->status = STATUS_DIVIDED;
     }
 
-    TreeNode *allocated = find_and_allocate(current->left_child, order);
-    if (allocated != NULL) {
+    int allocated = find_and_allocate(left_idx, order);
+    if (allocated >= 0) {
         return allocated;
     }
 
-    allocated = find_and_allocate(current->right_child, order);
-    if (allocated != NULL) {
+    allocated = find_and_allocate(right_idx, order);
+    if (allocated >= 0) {
         return allocated;
     }
 
-    if (current->left_child->status == STATUS_AVAILABLE && current->right_child->status == STATUS_AVAILABLE) {
+    if (tree_nodes[left_idx].status == STATUS_AVAILABLE && tree_nodes[right_idx].status == STATUS_AVAILABLE) {
         current->status = STATUS_AVAILABLE;
     }
 
-    return NULL;
+    return -1;
 }
 
-static void merge_upwards(TreeNode *current) {
-    while (current != NULL) {
-        if (current->left_child != NULL && current->right_child != NULL) {
-            if (current->left_child->status == STATUS_AVAILABLE && current->right_child->status == STATUS_AVAILABLE) {
-                current->status = STATUS_AVAILABLE;
-                current = current->parent_node;
-            } else {
-                current->status = STATUS_DIVIDED;
-                current = NULL;
-            }
+static void merge_upwards(int idx) {
+    while (idx > 0) {
+        int parent_idx = (idx - 1) >> 1;
+        int left_idx = (parent_idx * 2) + 1;
+        int right_idx = left_idx + 1;
+
+        if (right_idx >= TOTAL_NODES) {
+            break;
+        }
+
+        if (tree_nodes[left_idx].status == STATUS_AVAILABLE && tree_nodes[right_idx].status == STATUS_AVAILABLE) {
+            tree_nodes[parent_idx].status = STATUS_AVAILABLE;
+            idx = parent_idx;
         } else {
-            current = current->parent_node;
+            tree_nodes[parent_idx].status = STATUS_DIVIDED;
+            break;
         }
     }
 }
 
-
-static int count_available_bytes(const TreeNode *current) {
-    if (current == NULL) {
-        return 0;
+static int locate_node_for_offset(int idx, uint32_t target_offset) {
+    if (idx < 0 || idx >= TOTAL_NODES) {
+        return -1;
     }
 
-    if (current->status == STATUS_AVAILABLE) {
-        return get_block_size(current->block_order);
+    TreeNode *node = &tree_nodes[idx];
+    uint32_t node_offset = node->offset;
+    int size = get_block_size(node->block_order);
+
+    if (target_offset < node_offset || target_offset >= node_offset + (uint32_t)size) {
+        return -1;
     }
 
-    if (current->status == STATUS_DIVIDED) {
-        return count_available_bytes(current->left_child) + count_available_bytes(current->right_child);
+    if (node->status == STATUS_OCCUPIED) {
+        return (target_offset == node_offset) ? idx : -1;
     }
 
-    return 0;
+    if (node->status != STATUS_DIVIDED) {
+        return -1;
+    }
+
+    int left_idx = (idx * 2) + 1;
+    int right_idx = left_idx + 1;
+    if (right_idx >= TOTAL_NODES) {
+        return -1;
+    }
+
+    uint32_t half = (uint32_t)(size >> 1);
+    if (target_offset < node_offset + half) {
+        return locate_node_for_offset(left_idx, target_offset);
+    }
+    return locate_node_for_offset(right_idx, target_offset);
 }
 
 
 void initMemory(void) {
-    root_node = build_tree(0, MAX_BLOCK_ORDER, heap);
+    build_tree(0, MAX_BLOCK_ORDER, 0);
+    allocator_initialized = 1;
+    total_free_bytes = TOTAL_HEAP_SIZE;
 }
 
 void * myMalloc(int size) {
-    if (root_node == NULL) {
+    if (!allocator_initialized) {
         initMemory();
     }
 
-    if (size == 0 || size > TOTAL_HEAP_SIZE) {
+    if (size <= 0 || size > TOTAL_HEAP_SIZE) {
         return NULL;
     }
 
-    if (size > TOTAL_HEAP_SIZE - sizeof(AllocMetadata)) {
-        return NULL;
-    }
-
-    int total_needed = size + sizeof(AllocMetadata);
-    int order = calculate_order(total_needed);
+    int order = calculate_order(size);
 
     if (order > MAX_BLOCK_ORDER) {
         return NULL;
     }
 
-    TreeNode *allocated_node = find_and_allocate(root_node, order);
-    if (allocated_node == NULL) {
+    int allocated_idx = find_and_allocate(0, order);
+    if (allocated_idx < 0) {
         return NULL;
     }
 
-    AllocMetadata *metadata = (AllocMetadata *)allocated_node->mem_addr;
-    metadata->tree_node = allocated_node;
+    TreeNode *allocated_node = &tree_nodes[allocated_idx];
+    int block_size = get_block_size(allocated_node->block_order);
+    total_free_bytes -= block_size;
 
-    return allocated_node->mem_addr + sizeof(AllocMetadata);
+    return heap + allocated_node->offset;
 }
 
 void myFree(void *ptr) {
@@ -193,36 +196,48 @@ void myFree(void *ptr) {
         return;
     }
 
-    if (root_node == NULL) {
+    if (!allocator_initialized) {
         return;
     }
 
-    AllocMetadata *metadata = (AllocMetadata *)((uint8_t *)ptr - sizeof(AllocMetadata));
-    TreeNode *node_to_free = metadata->tree_node;
+    uint8_t *ptr_byte = (uint8_t *)ptr;
+    uint8_t *heap_start = heap;
+    uint8_t *heap_end = heap + TOTAL_HEAP_SIZE;
 
-    if (node_to_free == NULL || node_to_free->status != STATUS_OCCUPIED) {
+    if (ptr_byte < heap_start || ptr_byte >= heap_end) {
         return;
     }
 
-    metadata->tree_node = NULL;
+    uint32_t offset = (uint32_t)(ptr_byte - heap_start);
+    int node_index = locate_node_for_offset(0, offset);
+    if (node_index < 0 || node_index >= TOTAL_NODES) {
+        return;
+    }
+
+    TreeNode *node_to_free = &tree_nodes[node_index];
+
+    if (node_to_free->status != STATUS_OCCUPIED) {
+        return;
+    }
+
     node_to_free->status = STATUS_AVAILABLE;
-    merge_upwards(node_to_free->parent_node);
+    total_free_bytes += get_block_size(node_to_free->block_order);
+    merge_upwards(node_index);
 }
 
 void memstats(int *total, int *used, int *available) {
-    if (root_node == NULL) {
+    if (!allocator_initialized) {
         initMemory();
     }
     if (total != NULL) {
         *total = TOTAL_HEAP_SIZE;
     }
-    int available_total = count_available_bytes(root_node);
 
     if (available != NULL) {
-        *available = available_total;
+        *available = total_free_bytes;
     }
     if (used != NULL) {
-        *used = TOTAL_HEAP_SIZE - available_total;
+        *used = TOTAL_HEAP_SIZE - total_free_bytes;
     }
 }
 
@@ -240,19 +255,12 @@ int isValidHeapPtr(void *ptr) {
         return 0;
     }
     
-    // Check if there's enough space for the metadata header
-    if (ptr_byte - sizeof(AllocMetadata) < heap_start) {
+    uint32_t offset = (uint32_t)(ptr_byte - heap_start);
+    int node_index = locate_node_for_offset(0, offset);
+    if (node_index < 0 || node_index >= TOTAL_NODES) {
         return 0;
     }
-    
-    // Verify this is actually a valid allocated block by checking metadata
-    AllocMetadata *metadata = (AllocMetadata *)(ptr_byte - sizeof(AllocMetadata));
-    TreeNode *node = metadata->tree_node;
-    
-    // Verify the tree node pointer is valid (within tree_nodes array)
-    if (node < tree_nodes || node >= tree_nodes + TOTAL_NODES) {
-        return 0;
-    }
+    TreeNode *node = &tree_nodes[node_index];
     
     // Verify the node is actually occupied
     if (node->status != STATUS_OCCUPIED) {
@@ -260,7 +268,7 @@ int isValidHeapPtr(void *ptr) {
     }
     
     // Verify the pointer matches what malloc would have returned for this node
-    if (node->mem_addr + sizeof(AllocMetadata) != ptr_byte) {
+    if ((heap + node->offset) != ptr_byte) {
         return 0;
     }
     

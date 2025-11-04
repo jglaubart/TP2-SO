@@ -1,16 +1,20 @@
 #include "memory.h"
 #include <stdint.h>
+#include <string.h>
 
 // Configuración del heap
 #define HEAP_SIZE (4096 * 128)  // 512K de Heap
 #define BLOCK_SIZE 64             // Tamaño mínimo de bloque en bytes
 #define NUM_BLOCKS (HEAP_SIZE / BLOCK_SIZE)  // Cantidad total de bloques
 #define BITS_PER_BYTE 8           // Bits que tiene cada byte del bitmap
+#define BITMAP_NUM_BYTES ((NUM_BLOCKS + BITS_PER_BYTE - 1) / BITS_PER_BYTE)
+#define BLOCK_CONTINUATION 0xFFFFu
 
 // Estructura para el bitmap
 typedef struct {
-    uint8_t bitmap[NUM_BLOCKS / BITS_PER_BYTE];  // Cada bit representa un bloque (1=usado, 0=libre)
+    uint8_t bitmap[BITMAP_NUM_BYTES];  // Cada bit representa un bloque (1=usado, 0=libre)
     uint8_t heap[HEAP_SIZE];                      // El heap real donde se almacena la memoria
+    uint16_t allocation_map[NUM_BLOCKS];          // Bloques ocupados por reserva (solo para el bloque inicial)
     int blocks_used;                           // Cantidad de bloques en uso
 } MemoryManager;
 
@@ -67,15 +71,9 @@ static int find_free_blocks(int num_blocks_needed) {
 
 // Inicializa el gestor de memoria
 void initMemory(void) {
-    // Limpia el bitmap (todos los bloques libres)
-    for (int i = 0; i < NUM_BLOCKS / BITS_PER_BYTE; i++) {
-        mm.bitmap[i] = 0;
-    }
-    
-    // Limpia el heap
-    for (int i = 0; i < HEAP_SIZE; i++) {
-        mm.heap[i] = 0;
-    }
+    memset(mm.bitmap, 0, sizeof(mm.bitmap));
+    memset(mm.allocation_map, 0, sizeof(mm.allocation_map));
+    memset(mm.heap, 0, sizeof(mm.heap));
     mm.blocks_used = 0;
 }
 
@@ -87,6 +85,9 @@ void * myMalloc(int size) {
     
     // Calcula cuántos bloques se necesitan
     int blocks_needed = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    if (blocks_needed <= 0 || blocks_needed > NUM_BLOCKS || blocks_needed >= BLOCK_CONTINUATION) {
+        return NULL;
+    }
     
     // Busca bloques contiguos libres
     int start_block = find_free_blocks(blocks_needed);
@@ -101,6 +102,10 @@ void * myMalloc(int size) {
     }
     
     mm.blocks_used += blocks_needed;
+    mm.allocation_map[start_block] = (uint16_t)blocks_needed;
+    for (int i = 1; i < blocks_needed; i++) {
+        mm.allocation_map[start_block + i] = BLOCK_CONTINUATION;
+    }
     
     // Retorna puntero al inicio del bloque en el heap
     return (void *)&mm.heap[start_block * BLOCK_SIZE];
@@ -108,28 +113,40 @@ void * myMalloc(int size) {
 
 // Libera memoria
 void myFree(void *ptr) {
-        if (ptr == NULL) {
+    if (ptr == NULL) {
         return;
     }
     
-    // Calcula el índice del bloque inicial
+    uint8_t *ptr_byte = (uint8_t *)ptr;
     uint8_t *heap_start = mm.heap;
-    int offset = (uint8_t *)ptr - heap_start;
+    uint8_t *heap_end = mm.heap + HEAP_SIZE;
+
+    if (ptr_byte < heap_start || ptr_byte >= heap_end) {
+        return;
+    }
+
+    int offset = ptr_byte - heap_start;
+    if (offset % BLOCK_SIZE != 0) {
+        return;
+    }
+
     int start_block = offset / BLOCK_SIZE;
-    
-    // Verifica que el puntero sea válido
-    if (start_block >= NUM_BLOCKS) {
+    uint16_t blocks_to_free = mm.allocation_map[start_block];
+    if (blocks_to_free == 0 || blocks_to_free == BLOCK_CONTINUATION) {
         return;
     }
     
     // Libera bloques contiguos hasta encontrar uno libre
-    int blocks_freed = 0;
-    for (int i = start_block; i < NUM_BLOCKS && is_block_used(i); i++) {
-        mark_block_free(i);
-        blocks_freed++;
+    for (int i = 0; i < blocks_to_free && (start_block + i) < NUM_BLOCKS; i++) {
+        mark_block_free(start_block + i);
+        mm.allocation_map[start_block + i] = 0;
     }
     
-    mm.blocks_used -= blocks_freed;
+    if (mm.blocks_used >= (int)blocks_to_free) {
+        mm.blocks_used -= (int)blocks_to_free;
+    } else {
+        mm.blocks_used = 0;
+    }
 }
 
 // Obtiene estadísticas de memoria
@@ -174,6 +191,11 @@ int isValidHeapPtr(void *ptr) {
     
     // Verify the block is actually marked as used
     if (!is_block_used(block_index)) {
+        return 0;
+    }
+
+    uint16_t blocks_tracked = mm.allocation_map[block_index];
+    if (blocks_tracked == 0 || blocks_tracked == BLOCK_CONTINUATION) {
         return 0;
     }
     
