@@ -157,6 +157,10 @@ int post(semADT sem){
         dequeue(sem->blocked_processes, &pid);
         semUnlock(&sem->lock);
         unblock(pid);
+        // Yield to give the newly unblocked process a chance to run immediately
+        // This is especially important for semaphores where the unblocked process
+        // is likely waiting for the same resource we just released
+        yield();
     }
     return 0;
 }
