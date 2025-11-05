@@ -20,6 +20,8 @@ static Process *terminatedQueue[MAX_PROCESSES];
 static int terminatedCount = 0;
 static void * init_shell_entry = NULL;
 static int initProcessMain(void);
+static void cleanupProcessEndpoints(Process *process);
+static int initProcessEndpoints(Process *process, Process *parent);
 
 static int cmpInt(void *a, void *b) {
     return *((int *)a) - *((int *)b);
@@ -32,6 +34,50 @@ static void initProcessSem(Process *process) {
 	semName[9] = '0' + process->pid % 10;
 	semName[10] = '\0';
 	process->wait_sem = semInit(semName, 0);
+}
+
+static void cleanupProcessEndpoints(Process *process) {
+    if (process == NULL) {
+        return;
+    }
+
+    for (int i = 0; i < PIPE_FD_COUNT; i++) {
+        PipeEndpoint *endpoint = &process->fds[i];
+        if (endpoint->type == PIPE_ENDPOINT_PIPE && endpoint->pipeID >= 0) {
+            pipeRelease(endpoint->pipeID);
+        }
+    }
+
+    pipeResetEndpoints(process->fds);
+}
+
+static int initProcessEndpoints(Process *process, Process *parent) {
+    if (process == NULL) {
+        return -1;
+    }
+
+    pipeResetEndpoints(process->fds);
+
+    if (parent == NULL) {
+        return 0;
+    }
+
+    for (int fd = 0; fd < PIPE_FD_COUNT; fd++) {
+        PipeEndpointType type = parent->fds[fd].type;
+        int pipeID = parent->fds[fd].pipeID;
+        int status;
+        if (fd == READ_FD) {
+            status = pipeSetReadTarget(process->fds, type, pipeID);
+        } else {
+            status = pipeSetWriteTarget(process->fds, type, pipeID);
+        }
+        if (status != 0) {
+            cleanupProcessEndpoints(process);
+            return -1;
+        }
+    }
+
+    return 0;
 }
 
 static void enqueueTerminatedProcess(Process *process) {
@@ -190,6 +236,16 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
         myFree(stack_base);
         return NULL;
     }
+    Process * parent = NULL;
+    if (parentID >= 0) {
+        parent = getProcess(parentID);
+    }
+    if (initProcessEndpoints(process, parent) != 0) {
+        queueFree(process->children);
+        myFree(process);
+        myFree(stack_base);
+        return NULL;
+    }
     initProcessSem(process);
 
     process->argv = (char **) myMalloc(sizeof(char *) * (process->argc + 1));
@@ -198,6 +254,7 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
         myFree(stack_base);
         semDestroy(process->wait_sem);
         queueFree(process->children);
+        cleanupProcessEndpoints(process);
         return NULL;
     }
 
@@ -234,6 +291,7 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
         myFree(stack_base);
         semDestroy(process->wait_sem);
         queueFree(process->children);
+        cleanupProcessEndpoints(process);
         return NULL;
     }
 
@@ -250,12 +308,8 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
         return NULL;
     }
 
-    Process * parent = NULL;
-    if (parentID >= 0) {
-        parent = getProcess(parentID);
-        if (parent != NULL && parent->children != NULL) {
-            enqueue(parent->children, &process->pid);
-        }
+    if (parent != NULL && parent->children != NULL) {
+        enqueue(parent->children, &process->pid);
     }
 
     uint8_t effective_background = is_background;
@@ -354,6 +408,7 @@ void freeProcess(Process * p){
         myFree(p->argv);
         p->argv = NULL;
     }
+    cleanupProcessEndpoints(p);
     queueFree(p->children);
     myFree(p);
 }

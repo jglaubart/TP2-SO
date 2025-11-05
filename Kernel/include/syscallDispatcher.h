@@ -6,6 +6,7 @@
 #include <keyboard.h>
 #include <process.h>
 #include <semaphores.h>
+#include <pipes.h>
 
 
 typedef struct {
@@ -32,6 +33,10 @@ int32_t syscallDispatcher(Registers * registers);
 // Linux syscall prototypes
 int32_t sys_write(int32_t fd, char * __user_buf, int32_t count);
 int32_t sys_read(int32_t fd, signed char * __user_buf, int32_t count);
+int32_t sys_pipe(int pipefd[2]);
+int32_t sys_close_pipe(int pipeID);
+int32_t sys_dup_pipe_endpoint(int targetFd, int pipeID);
+int32_t sys_set_fd_target(int fd, PipeEndpointType type, int pipeID);
 
 // Custom syscall prototypes
 int32_t sys_start_beep(uint32_t nFrequence);

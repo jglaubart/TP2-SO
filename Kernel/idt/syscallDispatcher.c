@@ -9,6 +9,13 @@
 #include <memory.h>
 #include <process.h>
 #include <scheduler.h>
+#include <pipes.h>
+
+#ifndef FD_STDIN
+#define FD_STDIN  0
+#define FD_STDOUT 1
+#define FD_STDERR 2
+#endif
 
 
 extern int64_t register_snapshot[18];
@@ -76,6 +83,11 @@ int32_t syscallDispatcher(Registers * registers) {
 		case 0x80000302: return sys_sem_wait((semADT) registers->rdi);
 		case 0x80000303: return sys_sem_destroy((semADT) registers->rdi);
 		
+		case 0x80000400: return sys_pipe((int *) registers->rdi);
+		case 0x80000401: return sys_close_pipe((int) registers->rdi);
+		case 0x80000402: return sys_dup_pipe_endpoint((int) registers->rdi, (int) registers->rsi);
+		case 0x80000403: return sys_set_fd_target((int) registers->rdi, (PipeEndpointType) registers->rsi, (int) registers->rdx);
+		
 		default:
             return 0;
 	}
@@ -86,16 +98,123 @@ int32_t syscallDispatcher(Registers * registers) {
 // ==================================================================
 
 int32_t sys_write(int32_t fd, char * __user_buf, int32_t count) {
-    return printToFd(fd, __user_buf, count);
+    if (__user_buf == NULL || count < 0) {
+        return -1;
+    }
+
+    if (count == 0) {
+        return 0;
+    }
+
+    if (fd == FD_STDIN) {
+        return printToFd(fd, __user_buf, count);
+    }
+
+    if (fd != FD_STDOUT && fd != FD_STDERR) {
+        return -1;
+    }
+
+    Process *current = getCurrentProcess();
+    if (current == NULL) {
+        return -1;
+    }
+
+    PipeEndpoint *endpoint = &current->fds[WRITE_FD];
+    if (endpoint->type == PIPE_ENDPOINT_CONSOLE) {
+        return printToFd(fd, __user_buf, count);
+    }
+
+    if (endpoint->type == PIPE_ENDPOINT_PIPE) {
+        return pipeWriteEndpoint(endpoint, (const uint8_t *)__user_buf, count);
+    }
+
+    return -1;
 }
 
 int32_t sys_read(int32_t fd, signed char * __user_buf, int32_t count) {
-	int32_t i;
-	int8_t c;
-	for(i = 0; i < count && (c = getKeyboardCharacter(AWAIT_RETURN_KEY | SHOW_BUFFER_WHILE_TYPING)) != EOF; i++){
-		*(__user_buf + i) = c;
-	}
-    return i;
+    if (__user_buf == NULL || count < 0) {
+        return -1;
+    }
+
+    if (count == 0) {
+        return 0;
+    }
+
+    if (fd != FD_STDIN) {
+        return -1;
+    }
+
+    Process *current = getCurrentProcess();
+    if (current == NULL) {
+        return -1;
+    }
+
+    PipeEndpoint *endpoint = &current->fds[READ_FD];
+    if (endpoint->type == PIPE_ENDPOINT_CONSOLE) {
+        int32_t i;
+        int8_t c;
+        for(i = 0; i < count && (c = getKeyboardCharacter(AWAIT_RETURN_KEY | SHOW_BUFFER_WHILE_TYPING)) != EOF; i++){
+            *(__user_buf + i) = c;
+        }
+        return i;
+    }
+
+    if (endpoint->type == PIPE_ENDPOINT_PIPE) {
+        return pipeReadEndpoint(endpoint, (uint8_t *)__user_buf, count);
+    }
+
+    return -1;
+}
+
+int32_t sys_pipe(int pipefd[2]) {
+    if (pipefd == NULL) {
+        return -1;
+    }
+
+    int pipeID = openPipe();
+    if (pipeID < 0) {
+        return -1;
+    }
+
+    pipefd[READ_FD] = pipeID;
+    pipefd[WRITE_FD] = pipeID;
+    return 0;
+}
+
+int32_t sys_close_pipe(int pipeID) {
+    if (pipeID < 0) {
+        return -1;
+    }
+    return pipeRelease(pipeID);
+}
+
+int32_t sys_dup_pipe_endpoint(int targetFd, int pipeID) {
+    if (targetFd != READ_FD && targetFd != WRITE_FD) {
+        return -1;
+    }
+    if (pipeID < 0) {
+        return -1;
+    }
+    return pipeRetain(pipeID);
+}
+
+int32_t sys_set_fd_target(int fd, PipeEndpointType type, int pipeID) {
+    if (fd != READ_FD && fd != WRITE_FD) {
+        return -1;
+    }
+
+    Process *current = getCurrentProcess();
+    if (current == NULL) {
+        return -1;
+    }
+
+    int status;
+    if (fd == READ_FD) {
+        status = pipeSetReadTarget(current->fds, type, pipeID);
+    } else {
+        status = pipeSetWriteTarget(current->fds, type, pipeID);
+    }
+    return status;
 }
 
 // ==================================================================

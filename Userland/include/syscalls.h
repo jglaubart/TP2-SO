@@ -209,4 +209,19 @@ int32_t sys_sem_wait(void * sem);
 /* 0x80000303 */
 int32_t sys_sem_destroy(void * sem);
 
+#define PIPE_ENDPOINT_NONE 0
+#define PIPE_ENDPOINT_CONSOLE 1
+#define PIPE_ENDPOINT_PIPE 2
+#define READ_FD 0
+#define WRITE_FD 1
+#define PIPE_FD_COUNT 2
+
+// ================== Pipe syscall prototypes =================
+/* 0x80000400 */
+int32_t sys_pipe(int pipefd[2]);
+/* 0x80000401 */
+int32_t sys_close_pipe(int pipeID);
+/* 0x80000402 */
+int32_t sys_set_fd_target(int fd, int type, int pipeID);
+
 #endif

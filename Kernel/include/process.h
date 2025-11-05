@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include "queue.h"
 #include "semaphores.h"
+#include "pipes.h"
 
 #define PROCESS_STACK_SIZE 4096
 #define MAX_PROCESSES 64
@@ -40,6 +41,7 @@ typedef struct Process {
     uint8_t is_foreground; // 1 if the process currently owns the foreground
     QueueADT children; // Queue of child PIDs
     semADT wait_sem; // Semaphore for waiting on child processes
+    PipeEndpoint fds[PIPE_FD_COUNT];
 } Process;
 
 typedef struct ProcessInformation{
