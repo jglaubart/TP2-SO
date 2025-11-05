@@ -1,6 +1,8 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 #include <stdint.h>
+#include "queue.h"
+#include "semaphores.h"
 
 #define PROCESS_STACK_SIZE 4096
 #define MAX_PROCESSES 64
@@ -35,6 +37,8 @@ typedef struct Process {
     uint8_t * rsp;
     int waiting_for_child; // PID of child this process is waiting for (-1 if not waiting)
     uint8_t is_background; // 1 if the process was launched in background mode
+    QueueADT children; // Queue of child PIDs
+    semADT wait_sem; // Semaphore for waiting on child processes
 } Process;
 
 typedef struct ProcessInformation{

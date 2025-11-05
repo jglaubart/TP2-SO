@@ -6,6 +6,7 @@
 #include "scheduler.h"
 #include "interrupts.h"
 
+
 typedef struct pcb_table {
     Process * processes[MAX_PROCESSES];
     int processesCount;
@@ -16,6 +17,19 @@ static pcb_table * PCBTable = NULL;
 
 static Process *terminatedQueue[MAX_PROCESSES];
 static int terminatedCount = 0;
+
+static int cmpInt(void *a, void *b) {
+    return *((int *)a) - *((int *)b);
+}
+
+static void initProcessSem(Process *process) {
+    char semName[16] = "process";
+	semName[7] = '0' + process->pid / 100;
+	semName[8] = '0' + process->pid / 10;
+	semName[9] = '0' + process->pid % 10;
+	semName[10] = '\0';
+	process->wait_sem = semInit(semName, 0);
+}
 
 static void enqueueTerminatedProcess(Process *process) {
     if (process == NULL) {
@@ -53,7 +67,7 @@ void processCleanupTerminated(Process *exclude) {
             continue;
         }
 
-        freeProcess(process);
+        removeProcess(process);
     }
 
     for (int i = writeIndex; i < terminatedCount; i++) {
@@ -151,11 +165,20 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
     process->argv = NULL;
     process->is_background = is_background;
     process->waiting_for_child = -1;
+    process->children = createQueue(cmpInt, sizeof(int));
+    if(process->children == NULL){
+        myFree(process);
+        myFree(stack_base);
+        return NULL;
+    }
+    initProcessSem(process);
 
     process->argv = (char **) myMalloc(sizeof(char *) * (process->argc + 1));
     if (process->argv == NULL) {
         myFree(process);
         myFree(stack_base);
+        semDestroy(process->wait_sem);
+        queueFree(process->children);
         return NULL;
     }
 
@@ -169,6 +192,8 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
             myFree(process->argv);
             myFree(process);
             myFree(stack_base);
+            semDestroy(process->wait_sem);
+            queueFree(process->children);
             return NULL;
         }
         strcpy(process->argv[i], argv[i]);
@@ -188,6 +213,8 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
         }
         myFree(process);
         myFree(stack_base);
+        semDestroy(process->wait_sem);
+        queueFree(process->children);
         return NULL;
     }
 
@@ -206,22 +233,40 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
     
     return process;
 }
-
-void freeProcess(Process * p){
+void removeProcess(Process * p){
     if (p == NULL) {
         return;
     }
+    p->state = PROCESS_STATE_TERMINATED;
+
+    semDestroy(p->wait_sem);
 
     if (PCBTable != NULL && p->pid >= 0 && p->pid < MAX_PROCESSES && PCBTable->processes[p->pid] == p) {
-        // Eliminar proceso de la tabla (mantener contador coherente)
         PCBTable->processes[p->pid] = NULL;
         if (PCBTable->processesCount > 0) {
             PCBTable->processesCount--;
         }
     }
 
-    p->state = PROCESS_STATE_TERMINATED;
+    // The children of the terminated process are adopted by the process' parent.
+    Process * parent = getProcess(p->ppid);
+	if (!parent) // if parent got killed, let init be the new parent
+        parent = getProcess(INIT_PROCESS_PID);
 
+    while(!queueIsEmpty(p->children)) {
+        int child_pid;
+        dequeue(p->children, &child_pid);
+        Process *child = getProcess(child_pid);
+        if (child != NULL) {
+            child->ppid = parent->pid;
+            enqueue(parent->children, &child->pid);
+        }
+    }
+	
+    freeProcess(p);
+}
+
+void freeProcess(Process * p){
     if (p->stack_base != NULL) {
         myFree(p->stack_base);
         p->stack_base = NULL;
@@ -234,7 +279,7 @@ void freeProcess(Process * p){
         myFree(p->argv);
         p->argv = NULL;
     }
-    // Liberar memoria reservada para el proceso
+    queueFree(p->children);
     myFree(p);
 }
 
@@ -259,24 +304,24 @@ static int checkValidPid(int pid) {
 }
 
 int block(int pid) {
-    if (pid == IDLE_PROCESS_PID || !checkValidPid(pid)) {
+    if (!checkValidPid(pid)) {
         return -1;
     }
-    Process * process = getProcess(pid);
-    if (process == NULL) {
+    Process * p = getProcess(pid);
+    if (p == NULL) {
         return -1;
     }
 
-    if (process->state == PROCESS_STATE_READY) {
-        if (removeProcessFromScheduler(process) == -1) {
+    if (p->state == PROCESS_STATE_READY) {
+        if (removeProcessFromScheduler(p) == -1) {
             return -1;
         }
-        process->state = PROCESS_STATE_BLOCKED;
+        p->state = PROCESS_STATE_BLOCKED;
         return 0;
     }
 
-    if (process->state == PROCESS_STATE_RUNNING) {
-        process->state = PROCESS_STATE_BLOCKED;
+    if (p->state == PROCESS_STATE_RUNNING) {
+        p->state = PROCESS_STATE_BLOCKED;
         yield();
         return 0;
     }
@@ -309,18 +354,6 @@ int kill(int pid) {
 
     // Mark process as terminated
     process->state = PROCESS_STATE_TERMINATED;
-
-    // Wake up parent if waiting for this child
-    if (process->ppid >= 0 && checkValidPid(process->ppid)) {
-        Process * parent = getProcess(process->ppid);
-        if (parent != NULL && parent->waiting_for_child == pid) {
-            parent->waiting_for_child = -1;
-            if (parent->state == PROCESS_STATE_BLOCKED) {
-                unblock(parent->pid);
-            }
-        }
-    }
-
     if (previousState == PROCESS_STATE_RUNNING) {
         enqueueTerminatedProcess(process);
         // interrupcion para hacer context switch
@@ -328,7 +361,7 @@ int kill(int pid) {
         return 0;
     }
 
-    freeProcess(process);
+    removeProcess(process);
     return 0;
 }
 
@@ -365,13 +398,8 @@ int nice(int pid, int newPriority) {
 }
 
 int waitPid(int pid) {
-    // Validate target PID
-    if (!checkValidPid(pid)) {
-        return -1;
-    }
-
-    Process * child = getProcess(pid);
-    if (child == NULL) {
+    Process * p = getProcess(pid);
+    if (p == NULL) {
         return -1; // Child process doesn't exist
     }
 
@@ -380,27 +408,15 @@ int waitPid(int pid) {
         return -1;
     }
 
-    // Verify that the target is actually a child of the caller
-    if (child->ppid != current->pid) {
-        return -1; // Not a child of the calling process
-    }
-
     // If child is already terminated, return immediately
-    if (child->state == PROCESS_STATE_TERMINATED) {
+    if (p->state == PROCESS_STATE_TERMINATED) {
         return 0;
     }
-
-    // Mark that we're waiting for this child
-    current->waiting_for_child = pid;
-
-    // Block the current process
-    if (block(current->pid) == -1) {
-        current->waiting_for_child = -1;
+    if(p->wait_sem == NULL) {
         return -1;
     }
+    wait(p->wait_sem);
 
-    // When we get here, we've been unblocked (child terminated)
-    current->waiting_for_child = -1;
     return 0;
 }
 

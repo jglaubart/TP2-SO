@@ -203,3 +203,13 @@ void semDestroy(semADT sem){
     myFree(sem->name);
     myFree(sem);
 }
+
+int semGetBlockedCount(semADT sem) {
+    if (sem == NULL) {
+        return -1;
+    }
+    semLock(&sem->lock);
+    int count = queueSize(sem->blocked_processes);
+    semUnlock(&sem->lock);
+    return count;
+}
