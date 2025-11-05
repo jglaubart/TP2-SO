@@ -65,10 +65,9 @@ int main(){
 	initPipes();
 	setFontSize(2);
 
-	char ** argv = myMalloc(sizeof(char *) * 2);
-	argv[0] = "shell";
-	argv[1] = NULL;
-	createProcess(shellModuleAddress, 1, argv, MID_PRIORITY, 1, 0);
+	if (startInitProcess(shellModuleAddress) < 0) {
+		panic("Failed to start init process");
+	}
 
 	_sti();   // kernel starts running idle until interrupts are enabled. Changes to shell with the first timer interrupt.
 	

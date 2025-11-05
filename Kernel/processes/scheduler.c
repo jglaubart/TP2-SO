@@ -56,7 +56,7 @@ int initScheduler() {
     char ** idleArgv = myMalloc(sizeof(char *) * 2);
     idleArgv[0] = "idle";
     idleArgv[1] = NULL;
-    Process *idleProcess = createProcess((void *)idleTask, 1, idleArgv, MIN_PRIORITY, -1, 0);
+    Process *idleProcess = createProcess((void *)idleTask, 1, idleArgv, MIN_PRIORITY, -1, 1);
     if (idleProcess == NULL) {
         panic("Failed to create idle process.");
     }

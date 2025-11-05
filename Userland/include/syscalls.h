@@ -173,6 +173,7 @@ typedef struct ProcessInformation{
     ProcessState state;
     uint8_t * rsp;
     uint8_t * stack_base;
+    uint8_t is_foreground;
 } ProcessInformation;
 
 /* 0x80000200 */

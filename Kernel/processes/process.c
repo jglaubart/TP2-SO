@@ -11,12 +11,15 @@ typedef struct pcb_table {
     Process * processes[MAX_PROCESSES];
     int processesCount;
     int current_pid;
+    int foreground_pid;
 } pcb_table;
 
 static pcb_table * PCBTable = NULL;
 
 static Process *terminatedQueue[MAX_PROCESSES];
 static int terminatedCount = 0;
+static void * init_shell_entry = NULL;
+static int initProcessMain(void);
 
 static int cmpInt(void *a, void *b) {
     return *((int *)a) - *((int *)b);
@@ -80,23 +83,38 @@ void processCleanupTerminated(Process *exclude) {
 int initPCBTable() {
     if (PCBTable != NULL) {
 		panic("PCB already initialized");
-		return -1;	// PCB already initialized
 	}
 
     PCBTable = myMalloc(sizeof(pcb_table));
     if (PCBTable == NULL) {
         panic("Failed to allocate memory for PCB Table");
-        return -1; // Memory allocation failed 
     }
 
     PCBTable->processesCount = 0;
     PCBTable->current_pid = -1;
+    PCBTable->foreground_pid = -1;
 
     for (int i = 0; i < MAX_PROCESSES; i++) {
 		PCBTable->processes[i] = NULL;
 	}
 
     return 0;
+}
+
+int startInitProcess(void * shellEntryPoint) {
+    if (shellEntryPoint == NULL) {
+        return -1;
+    }
+
+    init_shell_entry = shellEntryPoint;
+
+    char * initArgv[] = { "init", NULL };
+    Process * initProcess = createProcess((void *)initProcessMain, 1, initArgv, MID_PRIORITY, -1, 1);
+    if (initProcess == NULL) {
+        return -1;
+    }
+
+    return initProcess->pid;
 }
 
 
@@ -164,6 +182,7 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
     process->rip = function;
     process->argv = NULL;
     process->is_background = is_background;
+    process->is_foreground = 0;
     process->waiting_for_child = -1;
     process->children = createQueue(cmpInt, sizeof(int));
     if(process->children == NULL){
@@ -237,13 +256,37 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
             enqueue(parent->children, &process->pid);
         }
     }
+
+    if (!is_background) {
+        setForegroundProcess(process);
+    }
     
     return process;
 }
+
+static int initProcessMain(void) {
+    while (1) {
+        if (init_shell_entry == NULL) {
+            panic("Init process without shell entry");
+        }
+
+        char * shellArgv[] = { "shell", NULL };
+        Process * shell = createProcess(init_shell_entry, 1, shellArgv, MID_PRIORITY, INIT_PROCESS_PID, 0);
+        if (shell == NULL) {
+            panic("Failed to launch shell process");
+        }
+
+        waitPid(shell->pid);
+    }
+
+    return 0;
+}
+
 void removeProcess(Process * p){
     if (p == NULL) {
         return;
     }
+    releaseForegroundProcess(p);
     p->state = PROCESS_STATE_TERMINATED;
 
     semDestroy(p->wait_sem);
@@ -260,8 +303,16 @@ void removeProcess(Process * p){
     if (parent != NULL && parent->children != NULL) {
         queueRemove(parent->children, &p->pid);
     }
-    if (!parent) { // if parent got killed, let init be the new parent
+    if (parent == NULL || parent->state == PROCESS_STATE_TERMINATED) {
         parent = getProcess(INIT_PROCESS_PID);
+    }
+
+    if (parent == NULL || parent->state == PROCESS_STATE_TERMINATED) {
+        parent = getProcess(SHELL_PROCESS_PID);
+    }
+
+    if (parent == NULL || parent->state == PROCESS_STATE_TERMINATED) {
+        parent = getProcess(IDLE_PROCESS_PID);
     }
 
     while(!queueIsEmpty(p->children)) {
@@ -344,15 +395,22 @@ int block(int pid) {
 }
 
 int kill(int pid) {
-    /* Protect critical system processes (idle=0 and shell/init=1) from being killed
+    /* Protect critical system processes (idle/init/shell) from being killed
        by arbitrary user processes to avoid freeing their stacks while they run. */
-    if (pid == 0 || pid == 1 || !checkValidPid(pid)) {
+    if (!checkValidPid(pid)) {
         return -1;
     }
+
+    if (pid == IDLE_PROCESS_PID || pid == INIT_PROCESS_PID || pid == SHELL_PROCESS_PID) {
+        return -1;
+    }
+
     Process * process = getProcess(pid);
     if (process == NULL) {
         return -1;
     }
+    
+    releaseForegroundProcess(process);
     
     ProcessState previousState = process->state;
     if (previousState == PROCESS_STATE_TERMINATED) {
@@ -531,8 +589,87 @@ int getProcessInfo(int pid, ProcessInformation * info){
     info->state = process->state;
     info->rsp = process->rsp;
     info->stack_base = process->stack_base;
+    info->is_foreground = process->is_foreground;
     _sti();
     return 0;
+}
+
+Process * getForegroundProcess(void) {
+    if (PCBTable == NULL) {
+        return NULL;
+    }
+
+    _cli();
+    int pid = PCBTable->foreground_pid;
+    Process *process = NULL;
+    if (pid >= 0 && pid < MAX_PROCESSES) {
+        process = PCBTable->processes[pid];
+    }
+    _sti();
+    return process;
+}
+
+void setForegroundProcess(Process * process) {
+    if (PCBTable == NULL) {
+        return;
+    }
+
+    _cli();
+    int currentPid = PCBTable->foreground_pid;
+    if (currentPid >= 0 && currentPid < MAX_PROCESSES) {
+        Process *current = PCBTable->processes[currentPid];
+        if (current != NULL) {
+            current->is_foreground = 0;
+        }
+    }
+
+    if (process != NULL) {
+        PCBTable->foreground_pid = process->pid;
+        process->is_foreground = 1;
+    } else {
+        PCBTable->foreground_pid = -1;
+    }
+    _sti();
+}
+
+void releaseForegroundProcess(Process * process) {
+    if (process == NULL) {
+        return;
+    }
+
+    Process *current = getForegroundProcess();
+    if (current == NULL || current->pid != process->pid) {
+        return; //el proceso a matar no es foreground
+    }
+
+    Process *candidate = getProcess(process->ppid);
+    if (candidate == NULL || candidate->state == PROCESS_STATE_TERMINATED) {
+        candidate = getProcess(INIT_PROCESS_PID);
+    }
+
+    if (candidate == NULL || candidate->state == PROCESS_STATE_TERMINATED) {
+        candidate = getProcess(SHELL_PROCESS_PID);
+    }
+
+    if (candidate == NULL || candidate->state == PROCESS_STATE_TERMINATED) {
+        candidate = getProcess(IDLE_PROCESS_PID);
+    }
+
+    setForegroundProcess(candidate);
+}
+
+int killForegroundProcess(void) {
+    Process *foreground = getForegroundProcess();
+    if (foreground == NULL) {
+        return -1;
+    }
+
+    if (foreground->pid <= SHELL_PROCESS_PID) {
+        // Never kill idle/init/shell via Ctrl+C
+        return -1;
+    }
+
+    return kill(foreground->pid);
 }
 
 int ps(ProcessInformation * processInfoTable){
@@ -547,4 +684,12 @@ int ps(ProcessInformation * processInfoTable){
         }
     }
     return count;
+}
+
+int getCurrentPid() {
+    Process * current = getCurrentProcess();
+    if (current == NULL) {
+        return -1;
+    }
+    return current->pid;
 }

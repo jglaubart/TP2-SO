@@ -127,6 +127,8 @@ static void tryFinalizePipe(int pipeID) {
     freePipe(pipe);
 }
 
+
+
 int closePipe(int pipeID) {
     pipeADT pipe = getPipe(pipeID);
     if (pipe == NULL) {
@@ -148,7 +150,7 @@ int closePipe(int pipeID) {
     wakeBlocked(pipe->readSem);
     wakeBlocked(pipe->writeSem);
 
-    destroyPipe(pipe);
+    tryFinalizePipe(pipeID);
     return 0;
 }
 

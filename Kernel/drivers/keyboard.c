@@ -3,6 +3,7 @@
 #include <interrupts.h>
 #include <cursor.h>
 #include <stddef.h>
+#include <process.h>
 
 #define BUFFER_SIZE 1024
 
@@ -256,6 +257,15 @@ uint8_t keyboardHandler(){
     }
     
     if (! (is_pressed && IS_KEYCODE(scancode)) ) return scancode; // ignore break or unsupported scancodes
+
+    if (CONTROL_KEY_PRESSED && makeCode(scancode) == C_KEY) {
+        if ((keyboard_options & MODIFY_BUFFER) != 0) {
+            to_write = to_read;
+            addCharToBuffer(NEW_LINE_CHAR, keyboard_options & SHOW_BUFFER_WHILE_TYPING);
+        }
+        killForegroundProcess();
+        return scancode;
+    }
     
     if ((keyboard_options & MODIFY_BUFFER) != 0) {
         int8_t c = scancodeMap[scancode][SHIFT_KEY_PRESSED];

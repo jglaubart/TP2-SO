@@ -37,6 +37,7 @@ typedef struct Process {
     uint8_t * rsp;
     int waiting_for_child; // PID of child this process is waiting for (-1 if not waiting)
     uint8_t is_background; // 1 if the process was launched in background mode
+    uint8_t is_foreground; // 1 if the process currently owns the foreground
     QueueADT children; // Queue of child PIDs
     semADT wait_sem; // Semaphore for waiting on child processes
 } Process;
@@ -48,6 +49,7 @@ typedef struct ProcessInformation{
     ProcessState state;
     uint8_t * rsp;
     uint8_t * stack_base;
+    uint8_t is_foreground;
 } ProcessInformation;
 
 int getNextPid(void);
@@ -65,8 +67,14 @@ int waitPid(int pid);
 int waitChildren(void);
 Process * getProcess(int pid);
 int getProcessInfo(int pid, ProcessInformation * info);
+Process * getForegroundProcess(void);
+void setForegroundProcess(Process * process);
+void releaseForegroundProcess(Process * process);
+int killForegroundProcess(void);
+int startInitProcess(void * shellEntryPoint);
 int ps(ProcessInformation * processInfoTable); // Always recieves a table of MAX_PROCESSES size
 int changePriority(int pid, ProcessPriority newPriority);
+int getCurrentPid();
 
 
 #endif

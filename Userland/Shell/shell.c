@@ -678,7 +678,7 @@ int _ps(void){ //MODOFICAR, ver de hacer mas corto o mover de archivo
 		// 	   processInfo[i].priority, rsp, stack_base, processInfo[i].hasForeground == 1 ? "Yes" : "No");
         printf("%d\t%s%s%s%s%s%s%d\t\t0x%x\t0x%x\t%s\n",
 			   processInfo[i].pid, name, padding, state_color, state_name, reset, state_padding,
-			   processInfo[i].priority, rsp, stack_base, "N/A"); //MODIFICAR, agregar foreground al implementarlo (descomentar linea anterior)
+			   processInfo[i].priority, rsp, stack_base, processInfo[i].is_foreground ? "Yes" : "No");
 	}
 	return 0;
 }
