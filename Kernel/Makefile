@@ -5,7 +5,7 @@ ALLOCATOR ?= buddy
 
 KERNEL_BIN=kernel.bin
 KERNEL_ELF=kernel.elf
-SOURCES=$(wildcard *.c ./drivers/*.c ./idt/*.c ./ds/*.c ./processes/*.c ./semaphores/*.c)
+SOURCES=$(wildcard *.c ./drivers/*.c ./idt/*.c ./ds/*.c ./processes/*.c ./semaphores/*.c ./pipes/*.c)
 SOURCES_ASM=$(wildcard asm/*.asm)
 
 # Select memory allocator source file based on ALLOCATOR variable

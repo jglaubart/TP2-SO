@@ -9,6 +9,8 @@
 #include "semaphores.h"
 #include "strings.h"
 
+#define FALSE 0
+#define TRUE !FALSE
 #define NEXT_IDX(i) (((i) + 1) % PIPE_BUFFER_SIZE)
 
 struct pipeCDT {
@@ -35,16 +37,15 @@ static char * getSemName(char mode) {
     return semNameBuffer;
 }
 
-int initPipes() {
+void initPipes() {
     pipes = myMalloc(sizeof(pipeADT) * MAX_PIPES);
     if(pipes == NULL){
         panic("Failed to allocate memory for pipes");
     }
-    memset(pipes, 0, sizeof(pipeADT) * MAX_PIPES);
+
     pipe_count = 0;
     strcpy(semNameBuffer, "pipeXXY");
     semNameBuffer[7] = '\0';
-    return 0;
 }
 
 static pipeADT buildPipe() {
@@ -113,9 +114,13 @@ static void freePipe(pipeADT pipe) {
 }
 
 
-static void destroyPipe(pipeADT pipe) {
+static void tryFinalizePipe(int pipeID) {
+    pipeADT pipe = getPipe(pipeID);
     if (pipe == NULL) {
         return;
+    }
+    if (!pipe->closed || pipe->refCount > 0) {
+    return;
     }
 
     pipes[pipe->id] = NULL;
@@ -138,7 +143,7 @@ int closePipe(int pipeID) {
     }
 
     // Otherwise we destroy the pipe
-    pipe->closed = 1;
+    pipe->closed = TRUE;
 
     wakeBlocked(pipe->readSem);
     wakeBlocked(pipe->writeSem);
@@ -147,3 +152,93 @@ int closePipe(int pipeID) {
     return 0;
 }
 
+static int pipeHasData(pipeADT pipe) {
+    return pipe->readIndex != pipe->writeIndex;
+}
+
+int readPipe(int pipeID, uint8_t * buffer, int size) {
+    pipeADT pipe = getPipe(pipeID);
+    if (pipe == NULL || buffer == NULL || size < 0) {
+        return -1;
+    }
+
+    if (size == 0) {
+        return 0;
+    }
+
+    int bytesRead = 0;
+
+    while (bytesRead < size) {
+        if (pipe->closed && !pipeHasData(pipe)) {
+            break;
+        }
+
+        if (wait(pipe->readSem) != 0) {
+            break;
+        }
+
+        semLock(&pipe->lock);
+
+        if (!pipeHasData(pipe)) {
+            semUnlock(&pipe->lock);
+            if (pipe->closed) {
+                break;
+            }
+            continue;
+        }
+
+        buffer[bytesRead] = pipe->buffer[pipe->readIndex];
+        pipe->readIndex = NEXT_IDX(pipe->readIndex);
+        semUnlock(&pipe->lock);
+
+        if (post(pipe->writeSem) != 0) {
+            panic("Pipe write semaphore failed");
+        }
+
+        bytesRead++;
+    }
+
+    tryFinalizePipe(pipeID);
+    return bytesRead;
+}
+
+int writePipe(int pipeID, uint8_t * buffer, int size) {
+    pipeADT pipe = getPipe(pipeID);
+    if (pipe == NULL || buffer == NULL || size < 0)
+        return -1;
+    if (pipe->closed)
+        return -1;
+    if (size == 0) 
+        return 0;
+
+    int written = 0;
+
+    while (written < size) {
+        if (pipe->closed) {
+            break;
+        }
+
+        if (wait(pipe->writeSem) != 0) {
+            break;
+        }
+
+        if (pipe->closed) {
+            post(pipe->writeSem);
+            break;
+        }
+
+        semLock(&pipe->lock);
+        pipe->buffer[pipe->writeIndex] = buffer[written];
+        pipe->writeIndex = NEXT_IDX(pipe->writeIndex);
+        semUnlock(&pipe->lock);
+
+        if (post(pipe->readSem) != 0) {
+            panic("Pipe read semaphore failed");
+        }
+
+        written++;
+    }
+
+    tryFinalizePipe(pipeID);
+    return written;
+}

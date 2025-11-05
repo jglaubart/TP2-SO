@@ -11,6 +11,9 @@
 #include <scheduler.h>
 #include <panic.h>
 #include "time.h"
+#include "process.h"
+#include "semaphores.h"
+#include "pipes.h"
 
 // extern uint8_t text;
 // extern uint8_t rodata;
@@ -58,6 +61,8 @@ int main(){
 	initMemory();
 	initPCBTable();
 	initScheduler();
+	initSemaphoreQueue();
+	initPipes();
 	setFontSize(2);
 
 	char ** argv = myMalloc(sizeof(char *) * 2);
