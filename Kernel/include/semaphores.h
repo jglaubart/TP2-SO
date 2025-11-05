@@ -11,6 +11,7 @@ int post(semADT sem);
 int wait(semADT sem);
 void semDestroy(semADT sem);
 int semGetBlockedCount(semADT sem);
+void wakeBlocked(semADT sem);
 
 void semLock(uint8_t *lock);
 void semUnlock(uint8_t *lock);

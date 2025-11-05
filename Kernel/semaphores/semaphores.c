@@ -213,3 +213,14 @@ int semGetBlockedCount(semADT sem) {
     semUnlock(&sem->lock);
     return count;
 }
+
+void wakeBlocked(semADT sem) {
+    if (sem == NULL) {
+        return;
+    }
+
+    int blocked = semGetBlockedCount(sem);
+    while (blocked-- > 0) {
+        post(sem);
+    }
+}
