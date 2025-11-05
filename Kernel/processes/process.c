@@ -230,6 +230,13 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
         freeProcess(process);
         return NULL;
     }
+
+    if (parentID >= 0) {
+        Process * parent = getProcess(parentID);
+        if (parent != NULL && parent->children != NULL) {
+            enqueue(parent->children, &process->pid);
+        }
+    }
     
     return process;
 }
@@ -250,16 +257,22 @@ void removeProcess(Process * p){
 
     // The children of the terminated process are adopted by the process' parent.
     Process * parent = getProcess(p->ppid);
-	if (!parent) // if parent got killed, let init be the new parent
+    if (parent != NULL && parent->children != NULL) {
+        queueRemove(parent->children, &p->pid);
+    }
+    if (!parent) { // if parent got killed, let init be the new parent
         parent = getProcess(INIT_PROCESS_PID);
+    }
 
     while(!queueIsEmpty(p->children)) {
         int child_pid;
         dequeue(p->children, &child_pid);
         Process *child = getProcess(child_pid);
-        if (child != NULL) {
+        if (child != NULL && parent != NULL) {
             child->ppid = parent->pid;
-            enqueue(parent->children, &child->pid);
+            if (parent->children != NULL) {
+                enqueue(parent->children, &child->pid);
+            }
         }
     }
 	
@@ -410,14 +423,79 @@ int waitPid(int pid) {
 
     // If child is already terminated, return immediately
     if (p->state == PROCESS_STATE_TERMINATED) {
+        if (current->children != NULL) {
+            queueRemove(current->children, &pid);
+        }
         return 0;
     }
     if(p->wait_sem == NULL) {
         return -1;
     }
-    wait(p->wait_sem);
+    int waitResult = wait(p->wait_sem);
+    if (current->children != NULL) {
+        queueRemove(current->children, &pid);
+    }
+    return waitResult;
+}
 
-    return 0;
+int waitChildren(void) {
+    Process * current = getCurrentProcess();
+    if (current == NULL) {
+        return -1;
+    }
+
+    if (current->children == NULL || queueIsEmpty(current->children)) {
+        return 0;
+    }
+
+    int childCount = queueSize(current->children);
+    if (childCount <= 0) {
+        return 0;
+    }
+
+    if (childCount > MAX_PROCESSES) {
+        childCount = MAX_PROCESSES;
+    }
+
+    int childPids[MAX_PROCESSES];
+
+    if (queueBeginCyclicIter(current->children) == NULL) {
+        return 0;
+    }
+
+    for (int i = 0; i < childCount; i++) {
+        queueNextCyclicIter(current->children, &childPids[i]);
+    }
+
+    int result = 0;
+
+    for (int i = 0; i < childCount; i++) {
+        int pid = childPids[i];
+        Process * child = getProcess(pid);
+        if (child == NULL) {
+            queueRemove(current->children, &pid);
+            continue;
+        }
+
+        if (child->state == PROCESS_STATE_TERMINATED) {
+            queueRemove(current->children, &pid);
+            continue;
+        }
+
+        if (child->wait_sem == NULL) {
+            queueRemove(current->children, &pid);
+            result = -1;
+            continue;
+        }
+
+        if (wait(child->wait_sem) != 0) {
+            result = -1;
+        }
+
+        queueRemove(current->children, &pid);
+    }
+
+    return result;
 }
 
 Process * getProcess(int pid) {
