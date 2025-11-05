@@ -193,6 +193,8 @@ int32_t sys_nice(int pid, int newPriority);
 int32_t sys_wait_pid(int pid);
 /* 0x80000208 */
 int32_t sys_yield(void);
+/* 0x80000209 */
+int32_t sys_wait_children(void);
 // ==========================================================================
 
 // ================== Semaphore management syscall prototypes =================

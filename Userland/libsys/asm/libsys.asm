@@ -43,6 +43,7 @@ GLOBAL sys_ps
 GLOBAL sys_nice
 GLOBAL sys_wait_pid
 GLOBAL sys_yield
+GLOBAL sys_wait_children
 GLOBAL sys_sem_init
 GLOBAL sys_sem_post
 GLOBAL sys_sem_wait
@@ -108,6 +109,7 @@ sys_nice: sys_int80 0x80000206
 sys_wait_pid: sys_int80 0x80000207
 
 sys_yield: sys_int80 0x80000208
+sys_wait_children: sys_int80 0x80000209
 
 sys_sem_init: sys_int80 0x80000300
 sys_sem_post: sys_int80 0x80000301

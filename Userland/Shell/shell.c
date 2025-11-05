@@ -46,6 +46,7 @@ int shell_kill(void);
 int _test_processes(void);
 int _ps(void);
 int _test_sync(void);
+int _test_wait_children(void);
 
 
 static void printPreviousCommand(enum REGISTERABLE_KEYS scancode);
@@ -75,14 +76,15 @@ Command commands[] = {
     { .name = "time",           .function = (int (*)(void))(unsigned long long)time,            .description = "Prints the current time" },
 
     { .name = "malloc",         .function = (int (*)(void))(unsigned long long)mem_test_malloc, .description = "Allocates memory and prints the address\n\t\t\t\tUse: malloc <size_in_bytes>" },
-    { .name = "memstats",       .function = (int (*)(void))(unsigned long long)mem_stats,       .description = "Displays memory metrics" },
+    { .name = "mem",       .function = (int (*)(void))(unsigned long long)mem_stats,       .description = "Displays memory metrics" },
     { .name = "free",           .function = (int (*)(void))(unsigned long long)mem_test_free,   .description = "Frees a previously allocated memory block\n\t\t\t\tUse: free <address_in_hex>" },
     { .name = "test_mm",        .function = (int (*)(void))(unsigned long long)_test_mm,        .description = "Tests the memory manager\n\t\t\t\tUse: _test_mm <max_memory>" },
     { .name = "kill",           .function = (int (*)(void))(unsigned long long)shell_kill,       .description = "Sends a kill signal to the target process.\n\t\t\t\tUse: kill <pid>" },
     { .name = "ps",             .function = (int (*)(void))(unsigned long long)_ps,               .description = "Displays the list of current processes information" },
     { .name = "test_prio",      .function = (int (*)(void))(unsigned long long)_test_prio,      .description = "Tests process priority scheduling\n\t\t\t\tUse: _test_prio <max_value>" },
     { .name = "test_processes", .function = (int (*)(void))(unsigned long long)_test_processes, .description = "Tests process management\n\t\t\t\tUse: _test_processes <max_processes>" },
-    { .name = "test_sync",      .function = (int (*)(void))(unsigned long long)_test_sync,       .description = "Tests process synchronization\n\t\t\t\tUse: _test_sync <num_iterations> <use_semaphore: 0|1>" }
+    { .name = "test_sync",      .function = (int (*)(void))(unsigned long long)_test_sync,       .description = "Tests process synchronization\n\t\t\t\tUse: _test_sync <num_iterations> <use_semaphore: 0|1>" },
+    { .name = "test_wait_children", .function = (int (*)(void))(unsigned long long)_test_wait_children, .description = "Spawns children and waits for all of them with waitChildren()\n\t\t\t\tUse: _test_wait_children [child_count]" }
 };
 
 static void printCommandInfo(char *name) {
@@ -279,7 +281,7 @@ int help(void){
         "clear", "divzero", "echo", "exit", "font", "help", "history", "invop", "man", "regs", "snake", "time"
     };
     char *memory_commands[] = {
-        "malloc", "free", "memstats"
+        "malloc", "free", "mem"
     };
     char *process_commands[] = {
         "kill", "ps"
@@ -699,6 +701,33 @@ int _test_sync(void) {
     }
 
     printf("_test_sync: started test as process %d\n", pid);
+    last_spawned_pid = pid;
+    return 0;
+}
+
+int _test_wait_children(void) {
+    char *count_str = strtok(NULL, " ");
+    if (count_str != NULL && strtok(NULL, " ") != NULL) {
+        perror("Usage: _test_wait_children [child_count]\n");
+        return -1;
+    }
+
+    uint8_t *args[] = { (uint8_t *)"test_wait_children", NULL };
+    uint64_t argc = 1;
+
+    if (count_str != NULL) {
+        args[1] = (uint8_t *)count_str;
+        argc = 2;
+    }
+
+    int32_t pid = createProcess((void *)test_wait_children, argc, args, current_command_background);
+
+    if (pid == -1) {
+        perror("_test_wait_children: failed to create process\n");
+        return -1;
+    }
+
+    printf("_test_wait_children: started test as process %d\n", pid);
     last_spawned_pid = pid;
     return 0;
 }

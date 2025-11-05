@@ -32,7 +32,7 @@ int32_t getCharacterWithoutDisplay(void);
 
 void * myMalloc(int size);
 int32_t myFree(void * ptr);
-int32_t memstats(int * total, int * used, int * available);
+int32_t mem(int * total, int * used, int * available);
 
 int32_t getPid(void);
 int32_t createProcess(void * function, uint64_t argc, uint8_t ** argv, uint8_t is_background);
@@ -41,6 +41,7 @@ int32_t block(int pid);
 int32_t kill(int pid);
 int32_t nice(int pid, int newPriority);
 int32_t waitPid(int pid);
+int32_t waitChildren(void);
 int32_t ps(ProcessInformation * processInfoTable);
 int32_t yield(void);
 

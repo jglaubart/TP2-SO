@@ -94,7 +94,7 @@ int32_t myFree(void * ptr){
     return sys_free(ptr);
 }
 /* 0x80000102 */
-int32_t memstats(int * total, int * used, int * available){
+int32_t mem(int * total, int * used, int * available){
     return sys_memstats(total, used, available) ;
 }
 
@@ -133,6 +133,10 @@ int32_t waitPid(int pid){
 /* 0x80000208 */
 int32_t yield(void){
     return sys_yield();
+}
+/* 0x80000209 */
+int32_t waitChildren(void){
+    return sys_wait_children();
 }
 
 // Semaphore management syscall prototypes

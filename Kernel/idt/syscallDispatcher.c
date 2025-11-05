@@ -69,6 +69,7 @@ int32_t syscallDispatcher(Registers * registers) {
 		case 0x80000206: return sys_nice((int) registers->rdi, (int) registers->rsi);
 		case 0x80000207: return sys_wait_pid((int) registers->rdi);
 		case 0x80000208: return sys_yield();
+		case 0x80000209: return sys_wait_children();
 
 		case 0x80000300: return (int64_t)sys_sem_init((const char *) registers->rdi, (uint32_t) registers->rsi);
 		case 0x80000301: return sys_sem_post((semADT) registers->rdi);
@@ -323,6 +324,10 @@ int32_t sys_nice(int pid, int newPriority) {
 
 int32_t sys_wait_pid(int pid) {
 	return waitPid(pid);
+}
+
+int32_t sys_wait_children(void) {
+	return waitChildren();
 }
 
 int32_t sys_yield(void) {
