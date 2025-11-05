@@ -578,7 +578,7 @@ int _test_prio(void){
 }
 
 int _ps(void){ //MODOFICAR, ver de hacer mas corto o mover de archivo
-    ProcessInformation processInfo[64];
+    static ProcessInformation processInfo[64];
     int count = ps(processInfo);
     if (count < 0){
         perror("ps: syscall failed\n");

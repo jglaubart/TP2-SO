@@ -250,14 +250,25 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
         return NULL;
     }
 
+    Process * parent = NULL;
     if (parentID >= 0) {
-        Process * parent = getProcess(parentID);
+        parent = getProcess(parentID);
         if (parent != NULL && parent->children != NULL) {
             enqueue(parent->children, &process->pid);
         }
     }
 
-    if (!is_background) {
+    uint8_t effective_background = is_background;
+    if (parent != NULL && parent->pid > SHELL_PROCESS_PID) {
+        effective_background = parent->is_background;
+    }
+
+    process->is_background = effective_background;
+
+    uint8_t should_take_foreground = !effective_background &&
+                                     (parent == NULL || parent->pid <= SHELL_PROCESS_PID);
+
+    if (should_take_foreground) {
         setForegroundProcess(process);
     }
     

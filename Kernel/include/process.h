@@ -13,8 +13,8 @@
 
 typedef enum {
     MIN_PRIORITY = 0,
-    MID_PRIORITY,
-    MAX_PRIORITY
+    MID_PRIORITY = 1,
+    MAX_PRIORITY = 2
 } ProcessPriority;
 
 typedef enum ProcessState {
