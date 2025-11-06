@@ -32,6 +32,7 @@ static int input_length = 0;
 static char history_entries[HISTORY_LIMIT][INPUT_CAPACITY];
 static int history_size = 0;
 static int history_cursor = 0;
+static int history_replay_remaining = 0;
 
 static int exit_requested = 0;
 static int exit_status = 0;
@@ -100,6 +101,19 @@ int main(void) {
 
 		char original_line[INPUT_CAPACITY];
 		copy_line(original_line, input_line, INPUT_CAPACITY);
+
+		int only_whitespace = 1;
+		for (int i = 0; original_line[i] != '\0'; i++) {
+			if (!is_whitespace_char(original_line[i])) {
+				only_whitespace = 0;
+				break;
+			}
+		}
+
+		if (only_whitespace) {
+			reset_input_buffer();
+			continue;
+		}
 
 		CommandInvocation pipeline[MAX_PIPE_SEGMENTS];
 		for (int i = 0; i < MAX_PIPE_SEGMENTS; i++) {
@@ -199,11 +213,13 @@ static void show_prompt(void) {
 static void reset_input_buffer(void) {
 	input_line[0] = '\0';
 	input_length = 0;
+	history_replay_remaining = 0;
 }
 
 static int capture_line(void) {
 	int ch = 0;
 	input_length = 0;
+	history_replay_remaining = 0;
 
 	while (input_length < INPUT_CAPACITY - 1) {
 		ch = getchar();
@@ -220,6 +236,11 @@ static int capture_line(void) {
 
 		if (ch == '\n') {
 			break;
+		}
+
+		if (history_replay_remaining > 0) {
+			history_replay_remaining--;
+			continue;
 		}
 
 		if (ch < 0) {
@@ -453,9 +474,17 @@ static void recall_previous(enum REGISTERABLE_KEYS scancode) {
 		history_cursor--;
 	}
 	clearInputBuffer();
-	copy_line(input_line, history_entries[history_cursor], INPUT_CAPACITY);
-	input_length = strlen(input_line);
-	fprintf(FD_STDOUT, "%s", input_line);
+	reset_input_buffer();
+	const char *entry = history_entries[history_cursor];
+	int len = strlen(entry);
+	if (len > 0) {
+		int max_copy = len < INPUT_CAPACITY - 1 ? len : INPUT_CAPACITY - 1;
+		copy_line(input_line, entry, INPUT_CAPACITY);
+		input_length = max_copy;
+		input_line[input_length] = '\0';
+		history_replay_remaining = input_length;
+		sys_write(FD_STDIN, input_line, input_length);
+	}
 }
 
 static void recall_next(enum REGISTERABLE_KEYS scancode) {
@@ -465,9 +494,17 @@ static void recall_next(enum REGISTERABLE_KEYS scancode) {
 	if (history_cursor < history_size - 1) {
 		history_cursor++;
 		clearInputBuffer();
-		copy_line(input_line, history_entries[history_cursor], INPUT_CAPACITY);
-		input_length = strlen(input_line);
-		fprintf(FD_STDOUT, "%s", input_line);
+		reset_input_buffer();
+		const char *entry = history_entries[history_cursor];
+		int len = strlen(entry);
+		if (len > 0) {
+			int max_copy = len < INPUT_CAPACITY - 1 ? len : INPUT_CAPACITY - 1;
+			copy_line(input_line, entry, INPUT_CAPACITY);
+			input_length = max_copy;
+			input_line[input_length] = '\0';
+			history_replay_remaining = input_length;
+			sys_write(FD_STDIN, input_line, input_length);
+		}
 	} else {
 		history_cursor = history_size;
 		clearInputBuffer();
@@ -508,9 +545,11 @@ static int strings_match(const char *a, const char *b) {
 
 static void handle_backspace(enum REGISTERABLE_KEYS scancode) {
 	if (input_length > 0) {
-		fprintf(FD_STDOUT, "\b \b");
 		input_length--;
 		input_line[input_length] = '\0';
+		if (history_replay_remaining > 0) {
+			history_replay_remaining--;
+		}
 	}
 }
 

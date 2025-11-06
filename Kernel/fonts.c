@@ -121,6 +121,9 @@ void putChar(char ascii) {
             hideCursor();
             newLine();
             break;
+        case '\b':
+            clearPreviousCharacter();
+            break;
         case CARRIAGE_RETURN_CHAR:
             hideCursor();
             while (xBufferPosition > 0) {
@@ -223,6 +226,8 @@ void retractPosition() {
 
 void clearPreviousCharacter(void){
     hideCursor();
+    retractPosition();
+    putChar(' ');
     retractPosition();
     showCursor();
 }
