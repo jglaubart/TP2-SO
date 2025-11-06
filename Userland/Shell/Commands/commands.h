@@ -28,6 +28,9 @@ int _mem_stats(int argc, char **argv);
 int _shell_kill(int argc, char **argv);
 int _shell_nice(int argc, char **argv);
 int _ps(int argc, char **argv);
+int _cat(int argc, char **argv);
+int _filter(int argc, char **argv);
+int _wc(int argc, char **argv);
 
 // Tests
 int _test_mm(int argc, char ** argv);

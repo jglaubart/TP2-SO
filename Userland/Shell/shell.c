@@ -61,6 +61,8 @@ Command commands[] = {
 	{.name = "echo", .function = _echo, .description = "Prints the provided arguments", .is_builtin = 0},
 	{.name = "exit", .function = exit, .description = "Exits the current shell", .is_builtin = 1},
 	{.name = "font", .function = _font, .description = "Adjusts font size", .is_builtin = 0},
+	{.name = "cat", .function = _cat, .description = "Prints stdin exactly as received", .is_builtin = 0},
+	{.name = "filter", .function = _filter, .description = "Removes vowels from stdin", .is_builtin = 0},
 	{.name = "help", .function = _help, .description = "Shows the available commands", .is_builtin = 0},
 	{.name = "history", .function = history, .description = "Prints the command history", .is_builtin = 1},
 	{.name = "invop", .function = _exception_invop, .description = "Generates an invalid opcode exception", .is_builtin = 0},
@@ -77,6 +79,7 @@ Command commands[] = {
 	{.name = "test_sync", .function = _test_sync, .description = "Synchronization race test: test_sync <iterations> <use_semaphore:0|1>", .is_builtin = 0},
 	{.name = "test_wait_children", .function = _test_wait_children, .description = "Spawns children and waits for all: test_wait_children [child_count]", .is_builtin = 0},
 	{.name = "time", .function = _time, .description = "Displays the current time", .is_builtin = 0},
+	{.name = "wc", .function = _wc, .description = "Counts stdin lines", .is_builtin = 0},
 };
 
 const int commands_size = sizeof(commands) / sizeof(commands[0]);
@@ -199,10 +202,24 @@ static void reset_input_buffer(void) {
 }
 
 static int capture_line(void) {
-	int ch;
+	int ch = 0;
 	input_length = 0;
 
-	while (input_length < INPUT_CAPACITY - 1 && (ch = getchar()) != '\n') {
+	while (input_length < INPUT_CAPACITY - 1) {
+		ch = getchar();
+
+		if (ch == -1) {
+			if (input_length == 0) {
+				return -1;
+			}
+			input_line[input_length] = '\0';
+			return input_length;
+		}
+
+		if (ch == '\n') {
+			break;
+		}
+
 		if (ch < 0) {
 			continue;
 		}

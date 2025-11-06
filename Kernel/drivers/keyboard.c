@@ -266,6 +266,13 @@ uint8_t keyboardHandler(){
         }
         return scancode;
     }
+
+    if (CONTROL_KEY_PRESSED && makeCode(scancode) == D_KEY) {
+        if ((keyboard_options & MODIFY_BUFFER) != 0) {
+            addCharToBuffer(EOF, 0);
+        }
+        return scancode;
+    }
     
     if ((keyboard_options & MODIFY_BUFFER) != 0) {
         int8_t c = scancodeMap[scancode][SHIFT_KEY_PRESSED];
