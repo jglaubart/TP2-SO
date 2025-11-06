@@ -259,11 +259,11 @@ uint8_t keyboardHandler(){
     if (! (is_pressed && IS_KEYCODE(scancode)) ) return scancode; // ignore break or unsupported scancodes
 
     if (CONTROL_KEY_PRESSED && makeCode(scancode) == C_KEY) {
-        if ((keyboard_options & MODIFY_BUFFER) != 0) {
+        int status = killForegroundProcess();
+        if (status == 0 && (keyboard_options & MODIFY_BUFFER) != 0) {
             to_write = to_read;
             addCharToBuffer(NEW_LINE_CHAR, keyboard_options & SHOW_BUFFER_WHILE_TYPING);
         }
-        killForegroundProcess();
         return scancode;
     }
     
