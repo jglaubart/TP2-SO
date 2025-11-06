@@ -207,7 +207,6 @@ static int capture_line(void) {
 			continue;
 		}
 		input_line[input_length++] = (char)ch;
-		putchar(ch);
 	}
 
 	if (ch != '\n') {
