@@ -16,22 +16,20 @@ int _filter(int argc, char **argv) {
         return 1;
     }
 
-    static const int buffer_size = 256;
-    char in[256];
-    char out[256];
-
-    int32_t read_bytes;
-    while ((read_bytes = sys_read(FD_STDIN, (signed char *)in, buffer_size)) > 0) {
-        int out_len = 0;
-        for (int i = 0; i < read_bytes; i++) {
-            if (!is_vowel(in[i])) {
-                out[out_len++] = in[i];
-            }
-        }
-        if (out_len > 0) {
-            sys_write(FD_STDOUT, out, out_len);
+    int printed = 0;
+    int ch;
+    while ((ch = getchar()) != -1) {
+        if (!is_vowel((char)ch)) {
+            putchar((char)ch);
+            printed = 1;
         }
     }
 
-    return (read_bytes < 0) ? 1 : 0;
+    if (printed) {
+        printf("\n\n");
+    } else {
+        printf("\n\n\n");
+    }
+
+    return 0;
 }

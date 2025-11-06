@@ -6,24 +6,22 @@ int _wc(int argc, char **argv) {
         return 1;
     }
 
-    static const int buffer_size = 256;
-    char buffer[256];
-    int32_t read_bytes;
+    int printed = 0;
     int lines = 0;
 
-    while ((read_bytes = sys_read(FD_STDIN, (signed char *)buffer, buffer_size)) > 0) {
-        for (int i = 0; i < read_bytes; i++) {
-            if (buffer[i] == '\n') {
-                lines++;
-            }
+    int ch;
+    while ((ch = getchar()) != -1) {
+        if (ch == '\n') {
+            lines++;
         }
+        printed = 1;
     }
 
-    if (read_bytes < 0) {
-        fprintf(FD_STDERR, "wc: read error\n");
-        return 1;
+    if (printed) {
+        printf("\n%d\n\n", lines);
+    } else {
+        printf("\n0\n\n\n");
     }
 
-    printf("%d\n", lines);
     return 0;
 }

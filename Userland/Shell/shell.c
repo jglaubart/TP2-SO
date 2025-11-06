@@ -210,9 +210,11 @@ static int capture_line(void) {
 
 		if (ch == -1) {
 			if (input_length == 0) {
+				putchar('\n');
 				return -1;
 			}
 			input_line[input_length] = '\0';
+			putchar('\n');
 			return input_length;
 		}
 
