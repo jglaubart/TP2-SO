@@ -1,9 +1,11 @@
 include ../Makefile.inc
 
 MODULE=shell.bin
-SOURCES=$(wildcard [^_]*.c) $(wildcard tests/*.c)
+SOURCES=$(wildcard [^_]*.c) \
+        $(wildcard Commands/*.c) \
+        $(wildcard tests/*.c)
 
-GCCFLAGS += -Itests
+GCCFLAGS += -Itests -I. -ICommands -I../include
 
 all: $(MODULE)
 

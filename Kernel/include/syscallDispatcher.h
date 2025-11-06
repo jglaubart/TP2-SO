@@ -35,7 +35,6 @@ int32_t sys_write(int32_t fd, char * __user_buf, int32_t count);
 int32_t sys_read(int32_t fd, signed char * __user_buf, int32_t count);
 int32_t sys_pipe(int pipefd[2]);
 int32_t sys_close_pipe(int pipeID);
-int32_t sys_dup_pipe_endpoint(int targetFd, int pipeID);
 int32_t sys_set_fd_target(int fd, PipeEndpointType type, int pipeID);
 
 // Custom syscall prototypes

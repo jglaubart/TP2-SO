@@ -156,3 +156,17 @@ int32_t semWait(void * sem){
 int32_t semDestroy(void * sem){
     return sys_sem_destroy(sem);
 }
+
+// Pipe management syscall prototypes
+/* 0x80000400 */
+int32_t openPipe(int pipefd[2]){
+    return sys_pipe(pipefd);
+}
+/* 0x80000401 */
+int32_t closePipe(int pipeID){
+    return sys_close_pipe(pipeID);
+}
+/* 0x80000402 */
+int32_t setFdTarget(int fd, int type, int pipeID){
+    return sys_set_fd_target(fd, type, pipeID);
+}

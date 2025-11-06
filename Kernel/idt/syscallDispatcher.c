@@ -85,8 +85,7 @@ int32_t syscallDispatcher(Registers * registers) {
 		
 		case 0x80000400: return sys_pipe((int *) registers->rdi);
 		case 0x80000401: return sys_close_pipe((int) registers->rdi);
-		case 0x80000402: return sys_dup_pipe_endpoint((int) registers->rdi, (int) registers->rsi);
-		case 0x80000403: return sys_set_fd_target((int) registers->rdi, (PipeEndpointType) registers->rsi, (int) registers->rdx);
+		case 0x80000402: return sys_set_fd_target((int) registers->rdi, (PipeEndpointType) registers->rsi, (int) registers->rdx);
 		
 		default:
             return 0;
@@ -186,16 +185,6 @@ int32_t sys_close_pipe(int pipeID) {
         return -1;
     }
     return pipeRelease(pipeID);
-}
-
-int32_t sys_dup_pipe_endpoint(int targetFd, int pipeID) {
-    if (targetFd != READ_FD && targetFd != WRITE_FD) {
-        return -1;
-    }
-    if (pipeID < 0) {
-        return -1;
-    }
-    return pipeRetain(pipeID);
 }
 
 int32_t sys_set_fd_target(int fd, PipeEndpointType type, int pipeID) {

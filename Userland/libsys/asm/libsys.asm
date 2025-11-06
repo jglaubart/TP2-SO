@@ -48,6 +48,10 @@ GLOBAL sys_sem_init
 GLOBAL sys_sem_post
 GLOBAL sys_sem_wait
 GLOBAL sys_sem_destroy
+
+GLOBAL sys_pipe
+GLOBAL sys_close_pipe
+GLOBAL sys_set_fd_target
 section .text
 
 %macro sys_int80 1
@@ -115,3 +119,7 @@ sys_sem_init: sys_int80 0x80000300
 sys_sem_post: sys_int80 0x80000301
 sys_sem_wait: sys_int80 0x80000302
 sys_sem_destroy: sys_int80 0x80000303
+sys_pipe: sys_int80 0x80000400
+sys_close_pipe: sys_int80 0x80000401
+sys_set_fd_target: sys_int80 0x80000402
+

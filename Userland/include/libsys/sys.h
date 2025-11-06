@@ -50,4 +50,8 @@ int32_t semPost(void * sem);
 int32_t semWait(void * sem);
 int32_t semDestroy(void * sem);
 
+int32_t openPipe(int pipefd[2]);
+int32_t closePipe(int pipeID);
+int32_t setFdTarget(int fd, int type, int pipeID);
+
 #endif
