@@ -24,6 +24,8 @@ struct pipeCDT {
     int closed;
     uint8_t lock;
     int activeOps;
+    int readerCount;
+    int writerCount;
 };
 
 static pipeADT * pipes = NULL;
@@ -69,11 +71,13 @@ static pipeADT buildPipe(int slot, int serial) {
 
     newPipe->id = slot;
     newPipe->readIndex = 0;
-    newPipe->writeIndex = 0;
+   newPipe->writeIndex = 0;
     newPipe->refCount = 0;
     newPipe->closed = 0;
     newPipe->lock = 0;
     newPipe->activeOps = 0;
+    newPipe->readerCount = 0;
+    newPipe->writerCount = 0;
 
     // Initialize semaphores
     getSemName(serial, 'R');
@@ -112,11 +116,6 @@ int openPipe() {
     }
     pipeSerial++;
     pipes[slot] = pipe;
-    if (pipeRetain(pipe->id) != 0) {
-        pipes[slot] = NULL;
-        freePipe(pipe);
-        return -1;
-    }
     return pipe->id;
 }
 
@@ -158,36 +157,73 @@ static void pipeLeaveOperation(pipeADT pipe) {
 
 
 
+static int closePipeInternal(pipeADT pipe, PipeEndpointRole role) {
+    if (pipe == NULL) {
+        return -1;
+    }
+
+    int wakeReaders = FALSE;
+    int wakeWriters = FALSE;
+    int remainingRefs;
+
+    semLock(&pipe->lock);
+
+    if (pipe->refCount > 0) {
+        pipe->refCount--;
+    }
+
+    if (role == PIPE_ROLE_READER || role == PIPE_ROLE_NONE) {
+        if (pipe->readerCount > 0) {
+            pipe->readerCount--;
+        }
+    }
+
+    if (role == PIPE_ROLE_WRITER || role == PIPE_ROLE_NONE) {
+        if (pipe->writerCount > 0) {
+            pipe->writerCount--;
+            if (pipe->writerCount == 0) {
+                if (!pipe->closed) {
+                    pipe->closed = TRUE;
+                }
+                wakeReaders = TRUE;
+            }
+        }
+    }
+
+    remainingRefs = pipe->refCount;
+
+    if (remainingRefs == 0) {
+        if (!pipe->closed) {
+            pipe->closed = TRUE;
+        }
+        wakeReaders = TRUE;
+        wakeWriters = TRUE;
+    }
+
+    semUnlock(&pipe->lock);
+
+    if (wakeReaders) {
+        wakeBlocked(pipe->readSem);
+    }
+    if (wakeWriters) {
+        wakeBlocked(pipe->writeSem);
+    }
+
+    if (remainingRefs > 0) {
+        return 0;
+    }
+
+    tryFinalizePipe(pipe->id);
+    return 0;
+}
+
 int closePipe(int pipeID) {
     pipeADT pipe = getPipe(pipeID);
     if (pipe == NULL) {
         return -1;
     }
 
-    int shouldWake = FALSE;
-    int remainingRefs;
-    semLock(&pipe->lock);
-    if (pipe->refCount > 0) {
-        pipe->refCount--;
-    }
-    remainingRefs = pipe->refCount;
-    if (remainingRefs == 0 && !pipe->closed) {
-        pipe->closed = TRUE;
-        shouldWake = TRUE;
-    }
-    semUnlock(&pipe->lock);
-
-    if (remainingRefs > 0) {
-        return 0;
-    }
-
-    if (shouldWake) {
-        wakeBlocked(pipe->readSem);
-        wakeBlocked(pipe->writeSem);
-    }
-
-    tryFinalizePipe(pipeID);
-    return 0;
+    return closePipeInternal(pipe, PIPE_ROLE_NONE);
 }
 
 static int pipeHasData(pipeADT pipe) {
@@ -219,8 +255,9 @@ int readPipe(int pipeID, uint8_t * buffer, int size) {
         semLock(&pipe->lock);
 
         if (!pipeHasData(pipe)) {
+            int writersRemaining = pipe->writerCount;
             semUnlock(&pipe->lock);
-            if (pipe->closed) {
+            if (pipe->closed || writersRemaining == 0) {
                 break;
             }
             continue;
@@ -285,24 +322,43 @@ int writePipe(int pipeID, uint8_t * buffer, int size) {
     return written;
 }
 
-int pipeRetain(int pipeID) {
+int pipeRetain(int pipeID, PipeEndpointRole role) {
     pipeADT pipe = getPipe(pipeID);
     if (pipe == NULL) {
         return -1;
     }
 
-    semLock(&pipe->lock);
-    if (pipe->closed) {
-        semUnlock(&pipe->lock);
+    if (role != PIPE_ROLE_READER && role != PIPE_ROLE_WRITER) {
         return -1;
     }
+
+    semLock(&pipe->lock);
+    if (role == PIPE_ROLE_WRITER) {
+        if (pipe->closed) {
+            if (pipe->writerCount == 0) {
+                pipe->closed = FALSE;
+            } else {
+                semUnlock(&pipe->lock);
+                return -1;
+            }
+        }
+        pipe->writerCount++;
+    } else {
+        pipe->readerCount++;
+    }
+
     pipe->refCount++;
     semUnlock(&pipe->lock);
     return 0;
 }
 
-int pipeRelease(int pipeID) {
-    return closePipe(pipeID);
+int pipeRelease(int pipeID, PipeEndpointRole role) {
+    pipeADT pipe = getPipe(pipeID);
+    if (pipe == NULL) {
+        return -1;
+    }
+
+    return closePipeInternal(pipe, role);
 }
 
 void pipeResetEndpoints(PipeEndpoint endpoints[PIPE_FD_COUNT]) {
@@ -313,20 +369,22 @@ void pipeResetEndpoints(PipeEndpoint endpoints[PIPE_FD_COUNT]) {
     for (int i = 0; i < PIPE_FD_COUNT; i++) {
         endpoints[i].type = PIPE_ENDPOINT_CONSOLE;
         endpoints[i].pipeID = -1;
+        endpoints[i].role = PIPE_ROLE_NONE;
     }
 }
 
-static int pipeSetEndpoint(PipeEndpoint *endpoint, PipeEndpointType type, int pipeID) {
+static int pipeSetEndpoint(PipeEndpoint *endpoint, PipeEndpointRole role, PipeEndpointType type, int pipeID) {
     if (endpoint == NULL) {
         return -1;
     }
 
     if (endpoint->type == PIPE_ENDPOINT_PIPE && endpoint->pipeID >= 0) {
-        pipeRelease(endpoint->pipeID);
+        pipeRelease(endpoint->pipeID, endpoint->role);
     }
 
     endpoint->type = PIPE_ENDPOINT_NONE;
     endpoint->pipeID = -1;
+    endpoint->role = PIPE_ROLE_NONE;
 
     switch (type) {
         case PIPE_ENDPOINT_NONE:
@@ -335,11 +393,15 @@ static int pipeSetEndpoint(PipeEndpoint *endpoint, PipeEndpointType type, int pi
             endpoint->type = PIPE_ENDPOINT_CONSOLE;
             return 0;
         case PIPE_ENDPOINT_PIPE:
-            if (pipeRetain(pipeID) != 0) {
+            if (role == PIPE_ROLE_NONE) {
+                return -1;
+            }
+            if (pipeRetain(pipeID, role) != 0) {
                 return -1;
             }
             endpoint->type = PIPE_ENDPOINT_PIPE;
             endpoint->pipeID = pipeID;
+            endpoint->role = role;
             return 0;
         default:
             return -1;
@@ -350,14 +412,14 @@ int pipeSetReadTarget(PipeEndpoint endpoints[PIPE_FD_COUNT], PipeEndpointType ty
     if (endpoints == NULL) {
         return -1;
     }
-    return pipeSetEndpoint(&endpoints[READ_FD], type, pipeID);
+    return pipeSetEndpoint(&endpoints[READ_FD], PIPE_ROLE_READER, type, pipeID);
 }
 
 int pipeSetWriteTarget(PipeEndpoint endpoints[PIPE_FD_COUNT], PipeEndpointType type, int pipeID) {
     if (endpoints == NULL) {
         return -1;
     }
-    return pipeSetEndpoint(&endpoints[WRITE_FD], type, pipeID);
+    return pipeSetEndpoint(&endpoints[WRITE_FD], PIPE_ROLE_WRITER, type, pipeID);
 }
 
 int pipeReadEndpoint(PipeEndpoint *endpoint, uint8_t *buffer, int size) {

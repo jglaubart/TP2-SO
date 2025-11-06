@@ -184,7 +184,7 @@ int32_t sys_close_pipe(int pipeID) {
     if (pipeID < 0) {
         return -1;
     }
-    return pipeRelease(pipeID);
+    return pipeRelease(pipeID, PIPE_ROLE_NONE);
 }
 
 int32_t sys_set_fd_target(int fd, PipeEndpointType type, int pipeID) {

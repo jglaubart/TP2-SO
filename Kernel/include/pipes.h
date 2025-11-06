@@ -22,9 +22,16 @@ typedef enum {
     PIPE_ENDPOINT_PIPE,
 } PipeEndpointType;
 
+typedef enum {
+    PIPE_ROLE_NONE = 0,
+    PIPE_ROLE_READER,
+    PIPE_ROLE_WRITER,
+} PipeEndpointRole;
+
 typedef struct {
     PipeEndpointType type;
     int pipeID; // valid only when type == PIPE_ENDPOINT_PIPE
+    PipeEndpointRole role;
 } PipeEndpoint;
 
 void initPipes(void);
@@ -33,8 +40,8 @@ int closePipe(int pipeID);
 int readPipe(int pipeID, uint8_t * buffer, int size);
 int writePipe(int pipeID, uint8_t * buffer, int size);
 
-int pipeRetain(int pipeID);
-int pipeRelease(int pipeID);
+int pipeRetain(int pipeID, PipeEndpointRole role);
+int pipeRelease(int pipeID, PipeEndpointRole role);
 
 void pipeResetEndpoints(PipeEndpoint endpoints[PIPE_FD_COUNT]);
 int pipeSetReadTarget(PipeEndpoint endpoints[PIPE_FD_COUNT], PipeEndpointType type, int pipeID);

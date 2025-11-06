@@ -44,7 +44,8 @@ static void cleanupProcessEndpoints(Process *process) {
     for (int i = 0; i < PIPE_FD_COUNT; i++) {
         PipeEndpoint *endpoint = &process->fds[i];
         if (endpoint->type == PIPE_ENDPOINT_PIPE && endpoint->pipeID >= 0) {
-            pipeRelease(endpoint->pipeID);
+            pipeRelease(endpoint->pipeID, endpoint->role);
+            endpoint->role = PIPE_ROLE_NONE;
         }
     }
 
