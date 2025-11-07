@@ -9,7 +9,7 @@ int _nice(int argc, char **argv) {
     const char *command_name = (argv != NULL && argv[0] != NULL) ? argv[0] : "nice";
 
     if (argc != 3) {
-        fprintf(FD_STDERR, "Usage: %s <pid> <priority>\n", command_name);
+        fprintf(FD_STDERR, "Usage: nice <pid> <priority>\n");
         return 1;
     }
 
