@@ -54,23 +54,22 @@ static void recall_next(enum REGISTERABLE_KEYS scancode);
 static void handle_backspace(enum REGISTERABLE_KEYS scancode);
 
 int history(int argc, char **argv);
-int exit(int argc, char **argv);
+int _getPid(int argc, char **argv);
 
 Command commands[] = {
-	{.name = "clear", .function = _clear, .description = "Clears the screen", .is_builtin = 0},
+	{.name = "cat", .function = _cat, .description = "Prints stdin exactly as received", .is_builtin = 0},
+    {.name = "clear", .function = _clear, .description = "Clears the screen", .is_builtin = 0},
 	{.name = "divzero", .function = _exception_divzero, .description = "Generates a division by zero exception", .is_builtin = 0},
 	{.name = "echo", .function = _echo, .description = "Prints the provided arguments", .is_builtin = 0},
-	{.name = "exit", .function = exit, .description = "Exits the current shell", .is_builtin = 1},
 	{.name = "font", .function = _font, .description = "Adjusts font size", .is_builtin = 0},
-	{.name = "cat", .function = _cat, .description = "Prints stdin exactly as received", .is_builtin = 0},
 	{.name = "filter", .function = _filter, .description = "Removes vowels from stdin", .is_builtin = 0},
+    {.name = "getpid", .function = _getPid, .description = "Gets the current process ID", .is_builtin = 1},
 	{.name = "help", .function = _help, .description = "Shows the available commands", .is_builtin = 0},
 	{.name = "history", .function = history, .description = "Prints the command history", .is_builtin = 1},
 	{.name = "invop", .function = _exception_invop, .description = "Generates an invalid opcode exception", .is_builtin = 0},
 	{.name = "kill", .function = _shell_kill, .description = "Terminates the provided PID", .is_builtin = 0},
 	{.name = "man", .function = _man, .description = "Shows the manual for a command", .is_builtin = 0},
 	{.name = "mem", .function = _mem_stats, .description = "Displays memory statistics", .is_builtin = 0},
-	{.name = "nice", .function = _shell_nice, .description = "Changes a process priority", .is_builtin = 0},
 	{.name = "ps", .function = _ps, .description = "Lists active processes", .is_builtin = 0},
 	{.name = "regs", .function = _regs, .description = "Prints the last register snapshot", .is_builtin = 0},
 	{.name = "snake", .function = _snake, .description = "Launches the snake game", .is_builtin = 0},
@@ -230,7 +229,7 @@ static int capture_line(void) {
 				return -1;
 			}
 			input_line[input_length] = '\0';
-			putchar('\n');
+			//putchar('\n');
 			return input_length;
 		}
 
@@ -578,21 +577,8 @@ int history(int argc, char **argv) {
 	return 0;
 }
 
-int exit(int argc, char **argv) {
-	if (argc > 2) {
-		fprintf(FD_STDERR, "Usage: exit [status]\n");
-		return 1;
-	}
-
-	int code = 0;
-	if (argc == 2) {
-		if (sscanf(argv[1], "%d", &code) != 1) {
-			fprintf(FD_STDERR, "exit: invalid status '%s'\n", argv[1]);
-			return 1;
-		}
-	}
-
-	exit_requested = 1;
-	exit_status = code;
-	return 0;
+int _getPid(int argc, char **argv) {
+    int pid = getPid();
+    printf("Current process ID: %d\n", pid);
+    return 0;
 }

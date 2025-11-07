@@ -32,14 +32,9 @@ int _help(int argc, char * argv[]){
         return 1;
     }
     char *basic_commands[] = {
-        "clear", "divzero", "echo", "exit", "font", "help", "history", "invop", "man", "regs", "snake", "time", "wc", "filter", "cat"
+        "clear", "divzero", "echo", "exit", "font", "help", "history", "invop", "man", "regs", "snake", "time", "wc", "filter", "cat",
+        "mem", "kill", "ps", "getpid"
     };
-    char *memory_commands[] = {
-        "mem"
-    };
-	char *process_commands[] = {
-		"kill", "ps"
-	};
 	char *test_commands[] = {
 		"test_mm", "test_prio", "test_processes", "test_sync", "test_wait_children"
 	};
@@ -48,16 +43,6 @@ int _help(int argc, char * argv[]){
 
     for (size_t i = 0; i < sizeof(basic_commands) / sizeof(char *); i++) {
         printCommandInfo(basic_commands[i]);
-    }
-
-    printf("\n========================= Memory =========================\n");
-    for (size_t i = 0; i < sizeof(memory_commands) / sizeof(char *); i++) {
-        printCommandInfo(memory_commands[i]);
-    }
-
-    printf("\n======================== Processes =========================\n");
-    for (size_t i = 0; i < sizeof(process_commands) / sizeof(char *); i++) {
-        printCommandInfo(process_commands[i]);
     }
 
     printf("\n========================= Tests =========================\n");
