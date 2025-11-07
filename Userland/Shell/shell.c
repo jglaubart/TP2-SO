@@ -70,6 +70,7 @@ Command commands[] = {
 	{.name = "kill", .function = _shell_kill, .description = "Terminates the provided PID", .is_builtin = 0},
 	{.name = "man", .function = _man, .description = "Shows the manual for a command", .is_builtin = 0},
 	{.name = "mem", .function = _mem_stats, .description = "Displays memory statistics", .is_builtin = 0},
+	{.name = "nice", .function = _nice, .description = "Changes a process priority: nice <pid> <priority>", .is_builtin = 0},
 	{.name = "ps", .function = _ps, .description = "Lists active processes", .is_builtin = 0},
 	{.name = "regs", .function = _regs, .description = "Prints the last register snapshot", .is_builtin = 0},
 	{.name = "snake", .function = _snake, .description = "Launches the snake game", .is_builtin = 0},
