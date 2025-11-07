@@ -20,8 +20,9 @@ int64_t satoi(char *str) {
   int64_t res = 0;
   int8_t sign = 1;
 
-  if (!str)
+  if (!str) {
     return 0;
+  }
 
   if (str[i] == '-') {
     i++;

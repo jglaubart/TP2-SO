@@ -32,6 +32,8 @@
 #define SUB_MOD(a, b, m) ((a) - (b) < 0 ? (m) - (b) + (a) : (a) - (b))
 #define DEC_MOD(x, m) ((x) = SUB_MOD(x, 1, m))
 
+#define SHELL_CTRL_K_CHAR 0x0B
+
 static uint8_t SHIFT_KEY_PRESSED, CAPS_LOCK_KEY_PRESSED, CONTROL_KEY_PRESSED;
 static int8_t buffer[BUFFER_SIZE];
 static uint16_t to_write = 0, to_read = 0;
@@ -196,8 +198,9 @@ void addCharToBuffer(int8_t ascii, uint8_t showOutput) {
     if (ascii != TABULATOR_CHAR) {
         buffer[to_write] = ascii;
         INC_MOD(to_write, BUFFER_SIZE);
-        if (showOutput)
+        if (showOutput){
             putChar(ascii);
+        }
         return ;
     }
 
@@ -208,7 +211,7 @@ void addCharToBuffer(int8_t ascii, uint8_t showOutput) {
 
 uint16_t clearBuffer() {
     uint16_t aux = SUB_MOD(to_write, to_read, BUFFER_SIZE);
-    if (aux == 0) return 0;
+    if (aux == 0) {return 0;}
     DEC_MOD(to_write, BUFFER_SIZE);
     clearPreviousCharacter();
     return aux;
@@ -221,8 +224,10 @@ int8_t getKeyboardCharacter(enum KEYBOARD_OPTIONS ops) {
 
     while(
         to_write == to_read || // always get at least one char from the buffer if empty
-        (   (keyboard_options & AWAIT_RETURN_KEY) && // wait for \n or EOF to be entered by the user
-            !(buffer[SUB_MOD(to_write, 1, BUFFER_SIZE)] == NEW_LINE_CHAR || buffer[SUB_MOD(to_write, 1, BUFFER_SIZE)] == EOF)
+        (   (keyboard_options & AWAIT_RETURN_KEY) && // wait for \n, EOF or control hotkey
+            !(buffer[SUB_MOD(to_write, 1, BUFFER_SIZE)] == NEW_LINE_CHAR ||
+              buffer[SUB_MOD(to_write, 1, BUFFER_SIZE)] == EOF ||
+              buffer[SUB_MOD(to_write, 1, BUFFER_SIZE)] == SHELL_CTRL_K_CHAR)
         )) _hlt();
 
     keyboard_options = 0;
@@ -249,8 +254,9 @@ uint8_t keyboardHandler(){
             CONTROL_KEY_PRESSED = is_pressed;
             break;
         case CAPS_LOCK_KEY:
-            if (is_pressed)
+            if (is_pressed){
                 CAPS_LOCK_KEY_PRESSED = !CAPS_LOCK_KEY_PRESSED;
+            }
             break;
 
         return scancode;
@@ -270,6 +276,13 @@ uint8_t keyboardHandler(){
     if (CONTROL_KEY_PRESSED && makeCode(scancode) == D_KEY) {
         if ((keyboard_options & MODIFY_BUFFER) != 0) {
             addCharToBuffer(EOF, 0);
+        }
+        return scancode;
+    }
+
+    if (CONTROL_KEY_PRESSED && makeCode(scancode) == K_KEY) {
+        if ((keyboard_options & MODIFY_BUFFER) != 0) {
+            addCharToBuffer(SHELL_CTRL_K_CHAR, 0);
         }
         return scancode;
     }

@@ -17,6 +17,7 @@
 #define HISTORY_LIMIT 10
 #define MAX_PIPE_SEGMENTS 8
 #define MAX_ARGUMENTS 16
+#define SHELL_CTRL_K_CHAR 0x0B
 
 typedef struct {
 	Command *command;
@@ -52,6 +53,7 @@ static int strings_match(const char *a, const char *b);
 static void recall_previous(enum REGISTERABLE_KEYS scancode);
 static void recall_next(enum REGISTERABLE_KEYS scancode);
 static void handle_backspace(enum REGISTERABLE_KEYS scancode);
+static void handle_mvar_close_hotkey(void);
 
 int history(int argc, char **argv);
 int _getPid(int argc, char **argv);
@@ -73,7 +75,7 @@ Command commands[] = {
 	{.name = "man", .function = _man, .description = "Shows the manual for a command", .is_builtin = 0},
 	{.name = "mem", .function = _mem_stats, .description = "Displays memory statistics", .is_builtin = 0},
     {.name = "mvar", .function = _mvar, .description = "Creates a multi-variable process", .is_builtin = 0},
-    {.name = "mvar-close", .function = _mvar_close, .description = "Stops mvar readers/writers and destroys the MVar", .is_builtin = 0},
+    {.name = "mvar-close", .function = _mvar_close, .description = "Kills mvar processes (Ctrl+K)", .is_builtin = 0},
 	{.name = "nice", .function = _nice, .description = "Changes a process priority: nice <pid> <priority>", .is_builtin = 0},
 	{.name = "ps", .function = _ps, .description = "Lists active processes", .is_builtin = 0},
 	{.name = "regs", .function = _regs, .description = "Prints the last register snapshot", .is_builtin = 0},
@@ -230,6 +232,11 @@ static int capture_line(void) {
 
 	while (input_length < INPUT_CAPACITY - 1) {
 		ch = getchar();
+
+		if (ch == SHELL_CTRL_K_CHAR) {
+			handle_mvar_close_hotkey();
+			continue;
+		}
 
 		if (ch == -1) {
 			if (input_length == 0) {
@@ -576,6 +583,14 @@ static void handle_backspace(enum REGISTERABLE_KEYS scancode) {
 			history_replay_remaining--;
 		}
 	}
+}
+
+static void handle_mvar_close_hotkey(void) {
+	putchar('\n');
+	reset_input_buffer();
+	char *argv[] = {"mvar-close", NULL};
+	_mvar_close(1, argv);
+	show_prompt();
 }
 
 int history(int argc, char **argv) {

@@ -281,12 +281,15 @@ int readPipe(int pipeID, uint8_t * buffer, int size) {
 
 int writePipe(int pipeID, uint8_t * buffer, int size) {
     pipeADT pipe = getPipe(pipeID);
-    if (pipe == NULL || buffer == NULL || size < 0)
+    if (pipe == NULL || buffer == NULL || size < 0){
         return -1;
-    if (pipe->closed)
+    }
+    if (pipe->closed){
         return -1;
-    if (size == 0) 
+    }
+    if (size == 0) {
         return 0;
+    }
 
     pipeEnterOperation(pipe);
     int written = 0;

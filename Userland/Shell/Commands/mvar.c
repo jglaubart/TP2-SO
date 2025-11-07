@@ -346,7 +346,7 @@ int _mvar(int argc, char **argv) {
 		return -1;
 	}
 
-	const char *reminder = "Remember to run 'mvar-close' after this to clean up the kernel MVar";
+	const char *reminder = "Remember to run 'mvar-close' (Ctrl+K) after this to clean up the kernel MVar";
 	printf("%s%s%s\n", COLOR_BLUE, reminder, COLOR_RESET);
 
 	for (int i = 0; i < nW; i++) {

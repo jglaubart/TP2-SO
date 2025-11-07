@@ -92,10 +92,11 @@ int vscanf(const char * format, va_list args) {
                         };
 
                         do {
-                            if (c == '-')
+                            if (c == '-') {
                                 negative = 1;
-                            else
+                            } else {
                                 num = num * 10 + c - '0';
+                            }
                         } while (((c = getchar()) >= '0' && c <= '9') || (num == 0 && c == '-'));
 
                         *va_arg(args, int *) = num * (negative ? -1 : 1);
@@ -244,7 +245,7 @@ static uint32_t uintToBase(uint64_t value, char * buffer, uint32_t base)
 }
 
 static void printBase(int fd, int num, int base) {
-    if (num < 0) fprintf(fd, "-");
+    if (num < 0) {fprintf(fd, "-");}
     uintToBase(num, buffer, base);
     fprintf(fd, buffer);
 }
