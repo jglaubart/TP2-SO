@@ -46,6 +46,8 @@ typedef struct {
 } KernelMVar;
 
 static KernelMVar kernel_mvar = {0};
+static int nR;
+static int nW;
 
 static void busy_wait(uint64_t iter);
 static uint32_t rng_next(uint32_t seed);
@@ -55,28 +57,6 @@ static int kernel_mvar_put(char value);
 static int kernel_mvar_take(char *value);
 static int writerMain(int argc, char **argv);
 static int readerMain(int argc, char **argv);
-
-static int64_t satoi(char *str) {
-  uint64_t i = 0;
-  int64_t res = 0;
-  int8_t sign = 1;
-
-  if (!str)
-    return 0;
-
-  if (str[i] == '-') {
-    i++;
-    sign = -1;
-  }
-
-  for (; str[i] != '\0'; ++i) {
-    if (str[i] < '0' || str[i] > '9')
-      return 0;
-    res = res * 10 + str[i] - '0';
-  }
-
-  return res * sign;
-}
 
 static void busy_wait(uint64_t iter) {
 	for (uint64_t i = 0; i < iter; i++) {
@@ -181,7 +161,7 @@ static int writerMain(int argc, char **argv) {
 	}
 
 	char id = argv[0][0];
-	int loops = DEFAULT_WRITER_LOOPS;
+	int loops = DEFAULT_WRITER_LOOPS * nR;
 	if (argc >= 2 && argv[1] != NULL) {
 		int parsed = satoi(argv[1]);
 		if (parsed > 0) {
@@ -210,7 +190,7 @@ static int readerMain(int argc, char **argv) {
 	}
 
 	const char *idstr = argv[0];
-	int loops = DEFAULT_READER_LOOPS;
+	int loops = DEFAULT_READER_LOOPS * nW;
 	if (argc >= 2 && argv[1] != NULL) {
 		int parsed = satoi(argv[1]);
 		if (parsed > 0) {
@@ -243,8 +223,8 @@ int _mvar(int argc, char **argv) {
 		return -1;
 	}
 
-	int nW = satoi(argv[1]);
-	int nR = satoi(argv[2]);
+	nW = satoi(argv[1]);
+	nR = satoi(argv[2]);
 
 	if (nW <= 0 || nR <= 0) {
 		printf("mvar: invalid writers/readers\n");
@@ -257,10 +237,7 @@ int _mvar(int argc, char **argv) {
 	}
 
 	const char *reminder = "Remember to run 'mvar-close' after this to clean up the kernel MVar";
-	const char *reminder_colors[] = {COLOR_YELLOW, COLOR_MAGENTA, COLOR_BLUE};
-	for (unsigned i = 0; i < sizeof(reminder_colors) / sizeof(reminder_colors[0]); i++) {
-		printf("%s%s%s\n", reminder_colors[i], reminder, COLOR_RESET);
-	}
+	printf("%s%s%s\n", COLOR_BLUE, reminder, COLOR_RESET);
 
 	for (int i = 0; i < nW; i++) {
 		char letter[2];
