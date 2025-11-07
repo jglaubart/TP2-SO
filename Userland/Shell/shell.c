@@ -426,7 +426,7 @@ static int run_pipeline(CommandInvocation *calls, int count, int pipeline_backgr
 			return -1;
 		}
 
-		uint8_t run_in_background = pipeline_background ? 1 : (i == 0 ? 0 : 1);
+		uint8_t run_in_background = pipeline_background ? 1 : (is_last ? 0 : 1);
 		int32_t pid = createProcess((void *)current->command->function, current->argc, (uint8_t **)current->argv, run_in_background);
 		setFdTarget(READ_FD, PIPE_ENDPOINT_CONSOLE, -1);
 		setFdTarget(WRITE_FD, PIPE_ENDPOINT_CONSOLE, -1);
@@ -442,10 +442,20 @@ static int run_pipeline(CommandInvocation *calls, int count, int pipeline_backgr
 	}
 
 	if (!pipeline_background) {
+		int upstream_signaled = 0;
 		for (int i = pid_count - 1; i >= 0; i--) {
 			int32_t pid = spawned_pids[i];
-			if (pid > 0) {
-				waitPid(pid);
+			if (pid <= 0) {
+				continue;
+			}
+			waitPid(pid);
+			if (!upstream_signaled && i == pid_count - 1) {
+				for (int j = 0; j < i; j++) {
+					if (spawned_pids[j] > 0) {
+						kill(spawned_pids[j]);
+					}
+				}
+				upstream_signaled = 1;
 			}
 		}
 	}
