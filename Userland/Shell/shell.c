@@ -141,6 +141,9 @@ int main(void) {
 				case -3:
 					fprintf(FD_STDERR, "shell: syntax error near '|'\n");
 					break;
+				case -6:
+					fprintf(FD_STDERR, "shell: cannot pipe more than two processes at once\n");
+					break;
 				case -4:
 					fprintf(FD_STDERR, "shell: command not found: %s\n", unknown != NULL ? unknown : "");
 					break;
@@ -298,6 +301,7 @@ static int parse_commands(char *line, CommandInvocation *calls, int *count, char
 
 	*unknown = NULL;
 	int stages = 0;
+	int pipe_count = 0;
 	char *segment_ptr = line;
 
 	while (segment_ptr != NULL) {
@@ -316,6 +320,10 @@ static int parse_commands(char *line, CommandInvocation *calls, int *count, char
 
 		char *next_segment = NULL;
 		if (pipe_pos != NULL) {
+			if (pipe_count >= 1) {
+				return -6;
+			}
+			pipe_count++;
 			*pipe_pos = '\0';
 			next_segment = pipe_pos + 1;
 		}
