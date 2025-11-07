@@ -31,6 +31,7 @@ int _shell_kill(int argc, char **argv);
 int _snake(int argc, char **argv);
 int _time(int argc, char **argv);
 int _wc(int argc, char **argv);
+int mvar(int argc, char **argv);
 
 // Tests
 int _test_mm(int argc, char ** argv);
