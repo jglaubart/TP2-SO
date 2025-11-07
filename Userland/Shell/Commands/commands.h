@@ -25,6 +25,7 @@ int _loop(int argc, char **argv);
 int _mem_stats(int argc, char **argv);
 int _man(int argc, char **argv);
 int _mvar(int argc, char **argv);
+int _mvar_close(int argc, char **argv);
 int _nice(int argc, char **argv);
 int _ps(int argc, char **argv);
 int _regs(int argc, char **argv);

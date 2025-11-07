@@ -31,6 +31,7 @@ static const char *const reader_colors[] = {
 };
 
 #define READER_COLOR_COUNT (sizeof(reader_colors) / sizeof(reader_colors[0]))
+#define MAX_TRACKED_MVAR_CHILDREN 64
 
 #define MVAR_EMPTY_SEM_NAME "mvar-empty"
 #define MVAR_FULL_SEM_NAME "mvar-full"
@@ -45,16 +46,28 @@ typedef struct {
 static KernelMVar kernel_mvar = {0};
 static int nR;
 static int nW;
+static int mvar_child_pids[MAX_TRACKED_MVAR_CHILDREN];
+static int mvar_child_count = 0;
+static uint8_t mvar_tracking_initialized = 0;
 
 static void busy_wait(uint64_t iter);
 static uint32_t rng_next(uint32_t seed);
 static const char *color_of_reader(const char *idstr);
 static int parse_loop_limit(int argc, char **argv);
+static void mvar_tracking_init(void);
+static void mvar_reset_tracking(void);
+static int mvar_register_child(int pid);
+static int mvar_pid_is_alive(int pid);
+static int mvar_has_active_children(void);
+static int mvar_kill_tracked_children(void);
+static void mvar_cleanup_all(void);
 static int kernel_mvar_open(void);
+static void kernel_mvar_destroy(void);
 static int kernel_mvar_put(char value);
 static int kernel_mvar_take(char *value);
 static int writerMain(int argc, char **argv);
 static int readerMain(int argc, char **argv);
+int _mvar_close(int argc, char **argv);
 
 static void busy_wait(uint64_t iter) {
 	for (uint64_t i = 0; i < iter; i++) {
@@ -99,6 +112,81 @@ static int parse_loop_limit(int argc, char **argv) {
 	return (parsed > 0) ? parsed : -1;
 }
 
+static void mvar_tracking_init(void) {
+	if (mvar_tracking_initialized) {
+		return;
+	}
+	for (int i = 0; i < MAX_TRACKED_MVAR_CHILDREN; i++) {
+		mvar_child_pids[i] = -1;
+	}
+	mvar_child_count = 0;
+	mvar_tracking_initialized = 1;
+}
+
+static void mvar_reset_tracking(void) {
+	for (int i = 0; i < MAX_TRACKED_MVAR_CHILDREN; i++) {
+		mvar_child_pids[i] = -1;
+	}
+	mvar_child_count = 0;
+}
+
+static int mvar_register_child(int pid) {
+	if (pid <= 0) {
+		return -1;
+	}
+	mvar_tracking_init();
+	if (mvar_child_count >= MAX_TRACKED_MVAR_CHILDREN) {
+		return -1;
+	}
+	mvar_child_pids[mvar_child_count++] = pid;
+	return 0;
+}
+
+static int mvar_pid_is_alive(int pid) {
+	if (pid <= 0) {
+		return 0;
+	}
+	ProcessInformation info;
+	if (getProcessInfo(pid, &info) != 0) {
+		return 0;
+	}
+	return info.state != PROCESS_STATE_TERMINATED;
+}
+
+static int mvar_has_active_children(void) {
+	mvar_tracking_init();
+	for (int i = 0; i < mvar_child_count; i++) {
+		if (mvar_pid_is_alive(mvar_child_pids[i])) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static int mvar_kill_tracked_children(void) {
+	mvar_tracking_init();
+	int killed = 0;
+	for (int i = 0; i < mvar_child_count; i++) {
+		int pid = mvar_child_pids[i];
+		if (pid <= 0) {
+			continue;
+		}
+		if (!mvar_pid_is_alive(pid)) {
+			continue;
+		}
+		if (kill(pid) == 0) {
+			killed++;
+		}
+	}
+	return killed;
+}
+
+static void mvar_cleanup_all(void) {
+	mvar_kill_tracked_children();
+	kernel_mvar_destroy();
+	mvar_reset_tracking();
+}
+
 static int kernel_mvar_open(void) {
 	if (kernel_mvar.initialized) {
 		return 0;
@@ -123,6 +211,23 @@ static int kernel_mvar_open(void) {
 	kernel_mvar.slot = 0;
 	kernel_mvar.initialized = 1;
 	return 0;
+}
+
+static void kernel_mvar_destroy(void) {
+	if (!kernel_mvar.initialized) {
+		return;
+	}
+
+	if (kernel_mvar.sem_empty != NULL) {
+		semDestroy(kernel_mvar.sem_empty);
+		kernel_mvar.sem_empty = NULL;
+	}
+	if (kernel_mvar.sem_full != NULL) {
+		semDestroy(kernel_mvar.sem_full);
+		kernel_mvar.sem_full = NULL;
+	}
+	kernel_mvar.slot = 0;
+	kernel_mvar.initialized = 0;
 }
 
 static int kernel_mvar_put(char value) {
@@ -225,6 +330,17 @@ int _mvar(int argc, char **argv) {
 		return -1;
 	}
 
+	mvar_tracking_init();
+	if (mvar_has_active_children()) {
+		printf("mvar: readers/writers already running; finish them with 'mvar-close' first\n");
+		return -1;
+	}
+	if (kernel_mvar.initialized) {
+		printf("mvar: kernel MVar already active; run 'mvar-close' to reset it\n");
+		return -1;
+	}
+	mvar_reset_tracking();
+
 	if (kernel_mvar_open() < 0) {
 		printf("mvar: error opening kernel mvar\n");
 		return -1;
@@ -239,8 +355,16 @@ int _mvar(int argc, char **argv) {
 		letter[1] = '\0';
 
 		char *wargs[] = {letter, NULL};
-		if (createProcess((void *)writerMain, 1, (uint8_t **)wargs, 0) < 0) {
+		int32_t pid = createProcess((void *)writerMain, 1, (uint8_t **)wargs, 0);
+		if (pid < 0) {
 			printf("mvar: failed to create writer process\n");
+			mvar_cleanup_all();
+			return -1;
+		}
+		if (mvar_register_child(pid) < 0) {
+			printf("mvar: too many mvar processes, aborting\n");
+			kill(pid);
+			mvar_cleanup_all();
 			return -1;
 		}
 	}
@@ -252,11 +376,35 @@ int _mvar(int argc, char **argv) {
 		idbuf[2] = '\0';
 
 		char *rargs[] = {idbuf, NULL};
-		if (createProcess((void *)readerMain, 1, (uint8_t **)rargs, 0) < 0) {
+		int32_t pid = createProcess((void *)readerMain, 1, (uint8_t **)rargs, 0);
+		if (pid < 0) {
 			printf("mvar: failed to create reader process\n");
+			mvar_cleanup_all();
+			return -1;
+		}
+		if (mvar_register_child(pid) < 0) {
+			printf("mvar: too many mvar processes, aborting\n");
+			kill(pid);
+			mvar_cleanup_all();
 			return -1;
 		}
 	}
 
+	return 0;
+}
+
+int _mvar_close(int argc, char **argv) {
+	if (argc != 1) {
+		printf("Usage: mvar-close\n");
+		return -1;
+	}
+
+	mvar_tracking_init();
+
+	int killed = mvar_kill_tracked_children();
+	kernel_mvar_destroy();
+	mvar_reset_tracking();
+
+	printf("mvar-close: terminated %d processes and released the kernel MVar\n", killed);
 	return 0;
 }

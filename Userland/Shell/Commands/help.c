@@ -33,7 +33,7 @@ int _help(int argc, char * argv[]){
     }
     char *basic_commands[] = {
         "block", "cat", "clear", "divzero", "echo", "exit", "filter", "font", "getpid", "help",
-        "history", "invop", "kill", "man", "mem", "mvar", "nice", "ps", "regs", "snake", "time", "wc"
+        "history", "invop", "kill", "man", "mem", "mvar", "mvar-close", "nice", "ps", "regs", "snake", "time", "wc"
     };
 	char *test_commands[] = {
 		"test_mm", "test_prio", "test_processes", "test_sync", "test_wait_children"
