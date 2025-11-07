@@ -196,6 +196,8 @@ int32_t sys_wait_pid(int pid);
 int32_t sys_yield(void);
 /* 0x80000209 */
 int32_t sys_wait_children(void);
+/* 0x8000020A */
+int32_t sys_get_process_info(int pid, ProcessInformation *info);
 // ==========================================================================
 
 // ================== Semaphore management syscall prototypes =================

@@ -41,6 +41,7 @@ int32_t block(int pid);
 int32_t kill(int pid);
 int32_t nice(int pid, int newPriority);
 int32_t waitPid(int pid);
+int32_t getProcessInfo(int pid, ProcessInformation *info);
 int32_t waitChildren(void);
 int32_t ps(ProcessInformation * processInfoTable);
 int32_t yield(void);

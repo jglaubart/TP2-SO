@@ -77,6 +77,7 @@ int32_t syscallDispatcher(Registers * registers) {
 		case 0x80000207: return sys_wait_pid((int) registers->rdi);
 		case 0x80000208: return sys_yield();
 		case 0x80000209: return sys_wait_children();
+		case 0x8000020A: return sys_get_process_info((int) registers->rdi, (ProcessInformation *) registers->rsi);
 
 		case 0x80000300: return (int64_t)sys_sem_init((const char *) registers->rdi, (uint32_t) registers->rsi);
 		case 0x80000301: return sys_sem_post((semADT) registers->rdi);
@@ -424,6 +425,10 @@ int32_t sys_kill(int pid) {
 
 int32_t sys_ps(ProcessInformation * processInfoTable) {
 	return ps(processInfoTable);
+}
+
+int32_t sys_get_process_info(int pid, ProcessInformation *info) {
+	return getProcessInfo(pid, info);
 }
 
 int32_t sys_nice(int pid, int newPriority) {

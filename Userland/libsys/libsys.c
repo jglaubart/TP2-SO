@@ -138,6 +138,10 @@ int32_t yield(void){
 int32_t waitChildren(void){
     return sys_wait_children();
 }
+/* 0x8000020A */
+int32_t getProcessInfo(int pid, ProcessInformation *info){
+    return sys_get_process_info(pid, info);
+}
 
 // Semaphore management syscall prototypes
 /* 0x80000300 */

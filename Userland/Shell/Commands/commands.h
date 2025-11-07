@@ -12,31 +12,30 @@
 #include <syscalls.h>
 // ---------------------------------
 
+int _block(int argc, char *argv[]);
+int _cat(int argc, char **argv);
 int _clear(int argc, char **argv);
 int _echo(int argc, char **argv);
-int _font(int argc, char **argv);
-int _help(int argc, char **argv);
-
 int _exception_divzero(int argc, char **argv);
 int _exception_invop(int argc, char **argv);
-int _man(int argc, char **argv);
-int _regs(int argc, char **argv);
-int _snake(int argc, char **argv);
-
-int _time(int argc, char **argv);
+int _filter(int argc, char **argv);
+int _font(int argc, char **argv);
+int _help(int argc, char **argv);
+int _loop(int argc, char **argv);
 int _mem_stats(int argc, char **argv);
-int _shell_kill(int argc, char **argv);
+int _man(int argc, char **argv);
 int _nice(int argc, char **argv);
 int _ps(int argc, char **argv);
-int _loop(int argc, char **argv);
-int _cat(int argc, char **argv);
-int _filter(int argc, char **argv);
+int _regs(int argc, char **argv);
+int _shell_kill(int argc, char **argv);
+int _snake(int argc, char **argv);
+int _time(int argc, char **argv);
 int _wc(int argc, char **argv);
 
 // Tests
 int _test_mm(int argc, char ** argv);
-int _test_processes(int argc, char ** argv);
 int _test_prio(int argc, char ** argv);
+int _test_processes(int argc, char ** argv);
 int _test_sync(int argc, char ** argv);
 int _test_wait_children(int argc, char ** argv);
 
