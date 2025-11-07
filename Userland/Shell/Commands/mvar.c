@@ -31,9 +31,6 @@ static const char *const reader_colors[] = {
 };
 
 #define READER_COLOR_COUNT (sizeof(reader_colors) / sizeof(reader_colors[0]))
-#define DEFAULT_WRITER_LOOPS 20
-#define DEFAULT_READER_LOOPS 20
-#define CHILD_LOOP_ARG "30"
 
 #define MVAR_EMPTY_SEM_NAME "mvar-empty"
 #define MVAR_FULL_SEM_NAME "mvar-full"
@@ -52,6 +49,7 @@ static int nW;
 static void busy_wait(uint64_t iter);
 static uint32_t rng_next(uint32_t seed);
 static const char *color_of_reader(const char *idstr);
+static int parse_loop_limit(int argc, char **argv);
 static int kernel_mvar_open(void);
 static int kernel_mvar_put(char value);
 static int kernel_mvar_take(char *value);
@@ -91,6 +89,14 @@ static const char *color_of_reader(const char *idstr) {
 		pid = 0;
 	}
 	return reader_colors[(uint32_t)pid % READER_COLOR_COUNT];
+}
+
+static int parse_loop_limit(int argc, char **argv) {
+	if (argc < 2 || argv == NULL || argv[1] == NULL) {
+		return -1;
+	}
+	int parsed = (int)satoi(argv[1]);
+	return (parsed > 0) ? parsed : -1;
 }
 
 static int kernel_mvar_open(void) {
@@ -161,17 +167,11 @@ static int writerMain(int argc, char **argv) {
 	}
 
 	char id = argv[0][0];
-	int loops = DEFAULT_WRITER_LOOPS * nR;
-	if (argc >= 2 && argv[1] != NULL) {
-		int parsed = satoi(argv[1]);
-		if (parsed > 0) {
-			loops = parsed;
-		}
-	}
+	int max_loops = parse_loop_limit(argc, argv);
 
 	uint32_t seed = (uint32_t)((getPid() < 0) ? 0 : getPid());
 
-	for (int i = 0; i < loops; i++) {
+	for (int i = 0; max_loops < 0 || i < max_loops; i++) {
 		seed = rng_next(seed);
 		busy_wait((seed % 50U) + 1U);
 
@@ -190,17 +190,11 @@ static int readerMain(int argc, char **argv) {
 	}
 
 	const char *idstr = argv[0];
-	int loops = DEFAULT_READER_LOOPS * nW;
-	if (argc >= 2 && argv[1] != NULL) {
-		int parsed = satoi(argv[1]);
-		if (parsed > 0) {
-			loops = parsed;
-		}
-	}
+	int max_loops = parse_loop_limit(argc, argv);
 
 	uint32_t seed = (uint32_t)((getPid() < 0) ? 0 : getPid());
 
-	for (int i = 0; i < loops; i++) {
+	for (int i = 0; max_loops < 0 || i < max_loops; i++) {
 		seed = rng_next(seed);
 		busy_wait((seed % 60U) + 1U);
 
@@ -244,8 +238,8 @@ int _mvar(int argc, char **argv) {
 		letter[0] = 'A' + (i % 26);
 		letter[1] = '\0';
 
-		char *wargs[] = {letter, (char *)CHILD_LOOP_ARG, NULL};
-		if (createProcess((void *)writerMain, 2, (uint8_t **)wargs, 0) < 0) {
+		char *wargs[] = {letter, NULL};
+		if (createProcess((void *)writerMain, 1, (uint8_t **)wargs, 0) < 0) {
 			printf("mvar: failed to create writer process\n");
 			return -1;
 		}
@@ -257,8 +251,8 @@ int _mvar(int argc, char **argv) {
 		idbuf[1] = '0' + (i % 10);
 		idbuf[2] = '\0';
 
-		char *rargs[] = {idbuf, (char *)CHILD_LOOP_ARG, NULL};
-		if (createProcess((void *)readerMain, 2, (uint8_t **)rargs, 0) < 0) {
+		char *rargs[] = {idbuf, NULL};
+		if (createProcess((void *)readerMain, 1, (uint8_t **)rargs, 0) < 0) {
 			printf("mvar: failed to create reader process\n");
 			return -1;
 		}
