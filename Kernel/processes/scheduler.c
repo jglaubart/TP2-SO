@@ -8,9 +8,12 @@
 
 static void idleTask(void);
 static void validateScheduler(void);
+static void enqueueReadyProcess(Process *process);
+static Process *dequeueNextReadyProcess(void);
+static int removeProcessFromQueue(QueueADT queue, Process *process);
 
 typedef struct scheduler {
-    QueueADT readyQueue;
+    QueueADT readyQueues[MAX_PRIORITY + 1];
     Process * currentProcess;
     Process * idleProcess;
     int firstInterrupt;
@@ -34,10 +37,10 @@ static int compareProcessForRemoval(void *a, void *b) {
 }
 
 // Helper function to calculate quantum limit based on priority
-// Higher priority (lower number) = more time slices before context switch
+// Higher priority (higher number) = more time slices before context switch
 static int getQuantumLimit(int priority) {
-    // (right shift = divide by 2^priority), to avoid importing pow
-    return 4 >> priority;
+    // (left shift = multiply by 2^priority), to avoid importing pow
+    return 1 << priority;
 }
 
 int initScheduler() {
@@ -46,9 +49,11 @@ int initScheduler() {
         panic("Failed to allocate memory for Scheduler.");
     }
 
-    scheduler->readyQueue = createQueue((QueueElemCmpFn)compareProcessForRemoval, sizeof(Process *));
-    if (scheduler->readyQueue == NULL) {
-        panic("Failed to create ready queue for scheduler.");
+    for (int priority = MIN_PRIORITY; priority <= MAX_PRIORITY; priority++) {
+        scheduler->readyQueues[priority] = createQueue((QueueElemCmpFn)compareProcessForRemoval, sizeof(Process *));
+        if (scheduler->readyQueues[priority] == NULL) {
+            panic("Failed to create ready queue for scheduler.");
+        }
     }
 
     scheduler->currentQuantum = 0;
@@ -61,7 +66,7 @@ int initScheduler() {
         panic("Failed to create idle process.");
     }
 
-    dequeue(scheduler->readyQueue, &idleProcess); // Ensure idle process is not in the ready queue
+    dequeue(scheduler->readyQueues[idleProcess->priority], &idleProcess); // Ensure idle process is not in the ready queue
     idleProcess->state = PROCESS_STATE_RUNNING;
     scheduler->currentProcess = idleProcess;
     scheduler->idleProcess = idleProcess;
@@ -91,9 +96,7 @@ uint8_t *schedule(uint8_t *rsp) {
         if (shouldSwitch) {
             if (scheduler->currentProcess->state == PROCESS_STATE_RUNNING) {
                 scheduler->currentProcess->state = PROCESS_STATE_READY;
-                if (enqueue(scheduler->readyQueue, &scheduler->currentProcess) == NULL) {
-                    panic("Failed to re-enqueue current process.");
-                }
+                enqueueReadyProcess(scheduler->currentProcess);
             }
         } else {
             // Don't switch yet, continue with current process
@@ -105,8 +108,8 @@ uint8_t *schedule(uint8_t *rsp) {
     scheduler->firstInterrupt = 0;
 
     
-    Process *nextProcess = NULL;
-    if (dequeue(scheduler->readyQueue, &nextProcess) == NULL || nextProcess == NULL) {
+    Process *nextProcess = dequeueNextReadyProcess();
+    if (nextProcess == NULL) {
         /*
          * No ready process available in the ready queue. Previously this
          * triggered a panic which halts the system. Instead of panicking,
@@ -141,9 +144,7 @@ int addProcessToScheduler(Process * process) {
         return -1;
     }
 
-    if (enqueue(scheduler->readyQueue, &process) == NULL) {
-        panic("Failed to enqueue process to scheduler.");
-    }
+    enqueueReadyProcess(process);
 
     return 0;
 }
@@ -155,15 +156,40 @@ int removeProcessFromScheduler(Process *process) {
         return -1;
     }
 
-    if (queueIsEmpty(scheduler->readyQueue)) {
+    if (process->priority >= MIN_PRIORITY && process->priority <= MAX_PRIORITY) {
+        if (removeProcessFromQueue(scheduler->readyQueues[process->priority], process) == 0) {
+            return 0;
+        }
+    }
+
+    for (int priority = MIN_PRIORITY; priority <= MAX_PRIORITY; priority++) {
+        if (priority == process->priority) {
+            continue;
+        }
+        if (removeProcessFromQueue(scheduler->readyQueues[priority], process) == 0) {
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
+int schedulerRequeueReadyProcess(Process *process) {
+    validateScheduler();
+
+    if (process == NULL) {
         return -1;
     }
 
-    Process *target = process;
-    if (queueRemove(scheduler->readyQueue, &target) == NULL) {
+    if (process->state != PROCESS_STATE_READY) {
+        return 0;
+    }
+
+    if (removeProcessFromScheduler(process) != 0) {
         return -1;
     }
 
+    enqueueReadyProcess(process);
     return 0;
 }
 
@@ -176,7 +202,50 @@ static void idleTask(void) {
 }
 
 static void validateScheduler() {
-    if (scheduler == NULL || scheduler->readyQueue == NULL) {
+    if (scheduler == NULL) {
         panic("Scheduler not initialized.");
     }
+
+    for (int priority = MIN_PRIORITY; priority <= MAX_PRIORITY; priority++) {
+        if (scheduler->readyQueues[priority] == NULL) {
+            panic("Scheduler ready queues not initialized.");
+        }
+    }
+}
+
+static void enqueueReadyProcess(Process *process) {
+    if (process == NULL) {
+        panic("Cannot enqueue NULL process.");
+    }
+
+    int priority = process->priority;
+    if (priority < MIN_PRIORITY || priority > MAX_PRIORITY) {
+        panic("Process priority out of bounds.");
+    }
+
+    if (enqueue(scheduler->readyQueues[priority], &process) == NULL) {
+        panic("Failed to enqueue process to scheduler.");
+    }
+}
+
+static Process *dequeueNextReadyProcess(void) {
+    for (int priority = MAX_PRIORITY; priority >= MIN_PRIORITY; priority--) {
+        QueueADT queue = scheduler->readyQueues[priority];
+        if (queue != NULL && !queueIsEmpty(queue)) {
+            Process *next = NULL;
+            if (dequeue(queue, &next) != NULL) {
+                return next;
+            }
+        }
+    }
+    return NULL;
+}
+
+static int removeProcessFromQueue(QueueADT queue, Process *process) {
+    if (queue == NULL || process == NULL || queueIsEmpty(queue)) {
+        return -1;
+    }
+
+    Process *target = process;
+    return queueRemove(queue, &target) == NULL ? -1 : 0;
 }

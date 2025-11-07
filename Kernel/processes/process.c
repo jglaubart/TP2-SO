@@ -191,7 +191,20 @@ int changePriority(int pid, ProcessPriority newPriority) {
         return -1;
     }
 
+    ProcessPriority oldPriority = process->priority;
+    if (oldPriority == newPriority) {
+        return 0;
+    }
+
     process->priority = newPriority;
+
+    if (process->state == PROCESS_STATE_READY) {
+        if (schedulerRequeueReadyProcess(process) != 0) {
+            process->priority = oldPriority;
+            return -1;
+        }
+    }
+
     return 0;
 }
 
@@ -531,7 +544,20 @@ int nice(int pid, int newPriority) {
         return -1;
     }
 
+    int oldPriority = process->priority;
+    if (oldPriority == newPriority) {
+        return 0;
+    }
+
     process->priority = newPriority;
+
+    if (process->state == PROCESS_STATE_READY) {
+        if (schedulerRequeueReadyProcess(process) != 0) {
+            process->priority = oldPriority;
+            return -1;
+        }
+    }
+
     return 0;
 }
 

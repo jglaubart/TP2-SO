@@ -442,8 +442,11 @@ static int run_pipeline(CommandInvocation *calls, int count, int pipeline_backgr
 	}
 
 	if (!pipeline_background) {
-		for (int i = 0; i < pid_count; i++) {
-			waitPid(spawned_pids[i]);
+		for (int i = pid_count - 1; i >= 0; i--) {
+			int32_t pid = spawned_pids[i];
+			if (pid > 0) {
+				waitPid(pid);
+			}
 		}
 	}
 

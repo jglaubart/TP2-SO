@@ -32,7 +32,7 @@ int _help(int argc, char * argv[]){
         return 1;
     }
     char *basic_commands[] = {
-        "clear", "divzero", "echo", "exit", "font", "help", "history", "invop", "man", "regs", "snake", "time"
+        "clear", "divzero", "echo", "exit", "font", "help", "history", "invop", "man", "regs", "snake", "time", "wc", "filter", "cat"
     };
     char *memory_commands[] = {
         "mem"
@@ -63,6 +63,7 @@ int _help(int argc, char * argv[]){
     printf("\n========================= Tests =========================\n");
     for (size_t i = 0; i < sizeof(test_commands) / sizeof(char *); i++) {
         printCommandInfo(test_commands[i]);
+        printf("\n");
     }
 
     printf("\n");
