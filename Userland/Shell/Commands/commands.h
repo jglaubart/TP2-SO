@@ -24,6 +24,7 @@ int _help(int argc, char **argv);
 int _loop(int argc, char **argv);
 int _mem_stats(int argc, char **argv);
 int _man(int argc, char **argv);
+int _mvar(int argc, char **argv);
 int _nice(int argc, char **argv);
 int _ps(int argc, char **argv);
 int _regs(int argc, char **argv);
@@ -31,7 +32,6 @@ int _shell_kill(int argc, char **argv);
 int _snake(int argc, char **argv);
 int _time(int argc, char **argv);
 int _wc(int argc, char **argv);
-int mvar(int argc, char **argv);
 
 // Tests
 int _test_mm(int argc, char ** argv);
