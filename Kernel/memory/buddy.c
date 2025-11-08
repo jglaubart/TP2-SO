@@ -25,10 +25,12 @@ static int allocator_initialized = 0;
 static int total_free_bytes = TOTAL_HEAP_SIZE;
 
 
-// FUNCIONES AUXILIARES 
+// ========== Helper Functions ========== 
+// Returns the byte size of a block for the given order.
 static int get_block_size(int order) {
     return (int)1u << order;
 }
+// Recursively builds the buddy tree starting from the given node.
 static void build_tree(int idx, int order, uint32_t offset) {
     TreeNode *current = &tree_nodes[idx];
     current->offset = offset;
@@ -46,6 +48,7 @@ static void build_tree(int idx, int order, uint32_t offset) {
 }
 
 
+// Determines the smallest order that can accommodate the requested size.
 static int calculate_order(int size) {
     int order = MIN_BLOCK_ORDER;
 
@@ -56,6 +59,7 @@ static int calculate_order(int size) {
     return order;
 }
 
+// Finds a suitable node and marks it as allocated.
 static int find_and_allocate(int idx, int order) {
     TreeNode *current = &tree_nodes[idx];
 
@@ -103,6 +107,7 @@ static int find_and_allocate(int idx, int order) {
     return -1;
 }
 
+// Attempts to merge a freed node with its parents when possible.
 static void merge_upwards(int idx) {
     while (idx > 0) {
         int parent_idx = (idx - 1) >> 1;
@@ -123,6 +128,7 @@ static void merge_upwards(int idx) {
     }
 }
 
+// Locates the tree node that matches the given heap offset.
 static int locate_node_for_offset(int idx, uint32_t target_offset) {
     if (idx < 0 || idx >= TOTAL_NODES) {
         return -1;

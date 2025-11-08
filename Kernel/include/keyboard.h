@@ -101,7 +101,9 @@ enum KEYBOARD_OPTIONS {
     MODIFY_BUFFER = 0b00000100
 };
 
+// Halts until any key is pressed or \n is entered, depending on keyboard_options (AWAIT_RETURN_KEY)
 int8_t getKeyboardCharacter(enum KEYBOARD_OPTIONS keyboard_options);
+
 void addCharToBuffer(int8_t ascii, uint8_t showOutput);
 uint16_t clearBuffer();
 uint8_t keyboardHandler();

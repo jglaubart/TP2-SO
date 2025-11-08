@@ -100,12 +100,6 @@ SECTION .text
 
 	mov [exception_register_snapshot + 0x78], rsp ; rsp
 
-	; after the exception, the rip's value that points 
-	; to the faulting instruction is, among other things, pushed to the stack
-	; it is the last thing pushed in the stack frame
-
-	; https://os.phil-opp.com/cpu-exceptions/#the-interrupt-stack-frame
-
 	mov rax, [rsp + 0x00] ; RIP
 	mov [exception_register_snapshot + 0x80], rax
 
@@ -174,7 +168,7 @@ _irq00Handler:
 	call irqDispatcher
 
 	mov rdi, rsp
-	call schedule ; get next process's stack pointer to run
+	call schedule  ; get next process's stack pointer to run
 	mov rsp, rax   ; switch stack pointer to the new process's stack
 
 	;EOI

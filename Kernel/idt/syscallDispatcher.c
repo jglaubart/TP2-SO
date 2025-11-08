@@ -371,10 +371,10 @@ void * sys_malloc(int size) {
 
 int32_t sys_free(void * ptr) {
 	if (!isValidHeapPtr(ptr)) {
-		return 0; // Return failure for invalid pointers
+		return 0;
 	}
 	myFree(ptr);
-	return 1; // Return success
+	return 1;
 }
 
 int32_t sys_memstats(int * total, int * used, int * available) {
@@ -389,7 +389,7 @@ int32_t sys_memstats(int * total, int * used, int * available) {
 int32_t sys_getpid(void) {
 	Process * currentProcess = getCurrentProcess();
 	if (currentProcess == NULL) {
-		return -1; // Indicate failure to get PID
+		return -1;
 	}
 	return currentProcess->pid;
 }
@@ -405,7 +405,7 @@ int32_t sys_create_process(void * function, int argc, char ** argv, uint8_t is_b
 
 	Process * newProcess = createProcess(function, argc, argv, priority, parentID, is_background);
 	if (newProcess == NULL) {
-		return -1; // Indicate failure to create process
+		return -1;
 	}
 
 	return newProcess->pid; // Return the PID of the newly created process

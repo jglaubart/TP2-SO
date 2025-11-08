@@ -128,10 +128,6 @@ void processCleanupTerminated(Process *exclude) {
 }
 
 int initPCBTable() {
-    if (PCBTable != NULL) {
-		panic("PCB already initialized");
-	}
-
     PCBTable = myMalloc(sizeof(pcb_table));
     if (PCBTable == NULL) {
         panic("Failed to allocate memory for PCB Table");
@@ -166,8 +162,7 @@ int startInitProcess(void * shellEntryPoint) {
 
 
 int getNextPid(void) {
-    // si es el primer proceso (idle), pid 0.
-    if(PCBTable->current_pid < 0){
+    if(PCBTable->current_pid < 0){  // First PID allocation, Idle process
         return 0;
     }
     
@@ -209,7 +204,6 @@ int changePriority(int pid, ProcessPriority newPriority) {
 }
 
 Process * createProcess(void * function, int argc, char ** argv, ProcessPriority priority, int parentID, uint8_t is_background){
-    // validaciones iniciales
     if(function == NULL || argc < 0 || priority < 0 || (argc > 0 && argv == NULL)){
         return NULL;
     }
@@ -219,7 +213,7 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
         return NULL;
     }
 
-    // reservar espacio de stack para el proceso
+    // reserve stack
     uint8_t * stack_base = myMalloc(PROCESS_STACK_SIZE);
     if (stack_base == NULL) {
         return NULL;
@@ -231,7 +225,7 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
         return NULL;
     }
 
-    uint8_t * stack_top = stack_base + PROCESS_STACK_SIZE - sizeof(uint64_t); //Stack crece hacia abajo
+    uint8_t * stack_top = stack_base + PROCESS_STACK_SIZE - sizeof(uint64_t); // Stack grows downwards
 
     process->pid = pid;
     process->ppid = parentID;
@@ -311,7 +305,7 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
 
     process->rsp = initial_rsp;
 
-    // agregar proceso a la PCB
+    // Add process to the PCB
     PCBTable->processes[pid] = process;
     PCBTable->processesCount++;
     PCBTable->current_pid = pid;
@@ -475,13 +469,11 @@ int block(int pid) {
 }
 
 int kill(int pid) {
-    /* Protect critical system processes (idle/init/shell) from being killed
-       by arbitrary user processes to avoid freeing their stacks while they run. */
     if (!checkValidPid(pid)) {
         return -1;
     }
 
-    if (pid == IDLE_PROCESS_PID || pid == INIT_PROCESS_PID || pid == SHELL_PROCESS_PID) {
+    if (pid == IDLE_PROCESS_PID || pid == INIT_PROCESS_PID || pid == SHELL_PROCESS_PID) {  // designed to prevent from killing system processes, shell included
         return -1;
     }
 
@@ -507,7 +499,7 @@ int kill(int pid) {
     process->state = PROCESS_STATE_TERMINATED;
     if (previousState == PROCESS_STATE_RUNNING) {
         enqueueTerminatedProcess(process);
-        // interrupcion para hacer context switch
+        // interrupt the current process to switch context
         yield();
         return 0;
     }
@@ -572,7 +564,7 @@ int waitPid(int pid) {
         return -1;
     }
 
-    // If child is already terminated, return immediately
+    // Child is already terminated
     if (p->state == PROCESS_STATE_TERMINATED) {
         if (current->children != NULL) {
             queueRemove(current->children, &pid);
@@ -732,7 +724,7 @@ void releaseForegroundProcess(Process * process) {
 
     Process *current = getForegroundProcess();
     if (current == NULL || current->pid != process->pid) {
-        return; //el proceso a matar no es foreground
+        return; 
     }
 
     Process *candidate = getProcess(process->ppid);

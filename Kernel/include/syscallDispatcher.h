@@ -81,7 +81,6 @@ int32_t sys_get_character_without_display(void);
 void * sys_malloc(int size);
 int32_t sys_free(void * ptr);
 int32_t sys_memstats(int * total, int * used, int * available);
-// =========================================================
 
 // =============== Process management syscalls ================
 int32_t sys_getpid(void);
@@ -95,14 +94,11 @@ int32_t sys_wait_children(void);
 int32_t sys_ps(ProcessInformation * processInfoTable);
 int32_t sys_get_process_info(int pid, ProcessInformation *info);
 int32_t sys_yield(void);
-// =========================================================
 
 // =============== Semaphore management syscalls ================
 semADT sys_sem_init(const char *name, uint32_t initial_count);
 int32_t sys_sem_post(semADT sem);
 int32_t sys_sem_wait(semADT sem);
 int32_t sys_sem_destroy(semADT sem);
-// =========================================================
-
 
 #endif

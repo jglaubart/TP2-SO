@@ -140,32 +140,22 @@ stackInit:
 	push rbp
 	mov rbp, rsp
 	
-	; Save rdi and rsi in registers that we won't clobber
-	; Use r8 and r9 (they're preserved by calling convention, but we're not calling anything)
 	mov r8, rdi  ; Save stack_top in r8
 	mov r9, rsi  ; Save function/rip in r9
-	; rdx (argc) and rcx (argv) are preserved by calling convention
 	
 	mov rsp, r8	; Switch to process stack top
 	
-	; Push return address for when main function returns
-	; This ensures that when the function does 'ret', it goes to processExit
 	mov r10, processExit
 	push r10
-	
-	; Save the adjusted RSP (after pushing return address)
-	; This will be the RSP when the function starts executing
+
 	mov r11, rsp
 	
-	; Build interrupt frame (bottom of stack, will be popped last by iretq)
 	push 0x0 ; SS
 	push r11 ; RSP (stack with return address already pushed)
 	push 0x202 ; RFLAGS (interrupts enabled)
 	push 0x8  ; CS (kernel code segment)
 	push r9 ; RIP (function address)
-	
-	; Push all general purpose registers (as if returning from interrupt)
-	; Order must match popState macro: R15, R14, ..., RAX
+
 	push 0   ; rax
 	push 0   ; rbx
 	push 0   ; rcx  
@@ -191,8 +181,7 @@ stackInit:
 	
 	ret
 
-; processExit: Called when a process function returns
-; This wrapper terminates the process and triggers a scheduler interrupt
+
 processExit:
 	; Get current process PID and kill it
 	call getCurrentProcess

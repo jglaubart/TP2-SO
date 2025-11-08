@@ -33,7 +33,6 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
     while (rq < MAX_BLOCKS && total < max_memory) {
       mm_rqs[rq].size = GetUniform(max_memory - total - 1) + 1;
       mm_rqs[rq].address = myMalloc(mm_rqs[rq].size);
-      //printf("test_mm: allocated %d bytes at address 0x%x\n", mm_rqs[rq].size, (unsigned int)(uintptr_t)mm_rqs[rq].address); //Debug line
 
       if (mm_rqs[rq].address) {
         total += mm_rqs[rq].size;
@@ -60,7 +59,6 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
     for (i = 0; i < rq; i++)
       if (mm_rqs[i].address){
         myFree(mm_rqs[i].address);
-        //printf("test_mm: freed memory at address 0x%x\n", (unsigned int)(uintptr_t)mm_rqs[i].address); //Debug line
       }
   }
 }

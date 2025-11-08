@@ -49,7 +49,6 @@ static RegisteredKeys KeyFnMap[ F12_KEY - ESCAPE_KEY + 1 ] = {0};
 // QEMU source https://github.com/qemu/qemu/blob/master/pc-bios/keymaps/en-us
 // http://flint.cs.yale.edu/feng/cos/resources/BIOS/Resources/assembly/makecodes.html
 // Array of scancodes to ASCII - Shift-Modified-ASCII
-// Note: this is NOT the complete QEMU scancode set, but it does include all printable characters and most control keys
 static const uint8_t scancodeMap[][2] = {
     /* 0x00 */ { 0, 0 },
     /* 0x01 */ { ESCAPE_KEY, ESCAPE_KEY },
@@ -177,19 +176,6 @@ static uint8_t isPressed(uint8_t scancode) {
     return !(isReleased(scancode));
 }
 
-// static uint8_t isShift(uint8_t scancode){
-//     uint8_t aux = scancode & 0x7F;
-//     return aux == SHIFT_KEY_L || aux == SHIFT_KEY_R;
-// }
-
-// static uint8_t isCapsLock(uint8_t scancode){
-//     return (scancode & 0x7F) == CAPS_LOCK_KEY;
-// }
-
-// static uint8_t isControl(uint8_t scancode){
-//     return (scancode & 0x7F) == CONTROL_KEY_L;
-// }
-
 static uint8_t makeCode(uint8_t scancode) {
     return scancode & 0x7F;
 }
@@ -217,8 +203,6 @@ uint16_t clearBuffer() {
     return aux;
 }
 
-// Halts until any key is pressed or \n is entered, depending on keyboard_options (AWAIT_RETURN_KEY)
-// This function always sets the MODIFY_BUFFER option, so keys can be consumed
 int8_t getKeyboardCharacter(enum KEYBOARD_OPTIONS ops) {
     keyboard_options = ops | MODIFY_BUFFER;
 

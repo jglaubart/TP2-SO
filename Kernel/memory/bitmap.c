@@ -2,49 +2,48 @@
 #include <stdint.h>
 #include <string.h>
 
-// Configuración del heap
-#define HEAP_SIZE (4096 * 128)  // 512K de Heap
-#define BLOCK_SIZE 64             // Tamaño mínimo de bloque en bytes
-#define NUM_BLOCKS (HEAP_SIZE / BLOCK_SIZE)  // Cantidad total de bloques
-#define BITS_PER_BYTE 8           // Bits que tiene cada byte del bitmap
+#define HEAP_SIZE (4096 * 128)  // 512K Heap
+#define BLOCK_SIZE 64             // Minimum block size in bytes
+#define NUM_BLOCKS (HEAP_SIZE / BLOCK_SIZE)  // Total number of blocks
+#define BITS_PER_BYTE 8           // Bits per byte in the bitmap
 #define BITMAP_NUM_BYTES ((NUM_BLOCKS + BITS_PER_BYTE - 1) / BITS_PER_BYTE)
 #define BLOCK_CONTINUATION 0xFFFFu
 
-// Estructura para el bitmap
+// Bitmap and heap structure
 typedef struct {
-    uint8_t bitmap[BITMAP_NUM_BYTES];  // Cada bit representa un bloque (1=usado, 0=libre)
-    uint8_t heap[HEAP_SIZE];                      // El heap real donde se almacena la memoria
-    uint16_t allocation_map[NUM_BLOCKS];          // Bloques ocupados por reserva (solo para el bloque inicial)
-    int blocks_used;                           // Cantidad de bloques en uso
+    uint8_t bitmap[BITMAP_NUM_BYTES];          // Each bit represents a block (1=used, 0=free)
+    uint8_t heap[HEAP_SIZE];                      // Actual heap where memory is stored
+    uint16_t allocation_map[NUM_BLOCKS];          // Blocks occupied by reservation (only for the initial block)
+    int blocks_used;                           // Number of blocks in use
 } MemoryManager;
 
-// Instancia global del gestor de memoria
+// Global memory manager instance
 static MemoryManager mm;
 
-// ==================== FUNCIONES AUXILIARES ====================
+// ==================== Helper Functions ====================
 
-// Verifica si un bloque está ocupado
+// Checks if a block is occupied
 static int is_block_used(int block_index) {
     int byte_index = block_index / BITS_PER_BYTE;
     int bit_index = block_index % BITS_PER_BYTE;
     return (mm.bitmap[byte_index] >> bit_index) & 1;
 }
 
-// Marca un bloque como usado
+// Marks a block as used
 static void mark_block_used(int block_index) {
     int byte_index = block_index / BITS_PER_BYTE;
     int bit_index = block_index % BITS_PER_BYTE;
     mm.bitmap[byte_index] |= (1 << bit_index);
 }
 
-// Marca un bloque como libre
+// Marks a block as free
 static void mark_block_free(int block_index) {
     int byte_index = block_index / BITS_PER_BYTE;
     int bit_index = block_index % BITS_PER_BYTE;
     mm.bitmap[byte_index] &= ~(1 << bit_index);
 }
 
-// Encuentra bloques contiguos libres
+// Finds contiguous free blocks
 static int find_free_blocks(int num_blocks_needed) {
     int consecutive_free = 0;
     int start_block = 0;
@@ -64,12 +63,10 @@ static int find_free_blocks(int num_blocks_needed) {
         }
     }
     
-    return NUM_BLOCKS;  // No se encontró espacio suficiente
+    return NUM_BLOCKS;
 }
 
-// ==================== FUNCIONES PÚBLICAS ====================
-
-// Inicializa el gestor de memoria
+// ==================== Public Functions ====================
 void initMemory(void) {
     memset(mm.bitmap, 0, sizeof(mm.bitmap));
     memset(mm.allocation_map, 0, sizeof(mm.allocation_map));
@@ -77,26 +74,22 @@ void initMemory(void) {
     mm.blocks_used = 0;
 }
 
-// Reserva memoria
 void * myMalloc(int size) {
     if (size == 0) {
         return NULL;
     }
     
-    // Calcula cuántos bloques se necesitan
     int blocks_needed = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
     if (blocks_needed <= 0 || blocks_needed > NUM_BLOCKS || blocks_needed >= BLOCK_CONTINUATION) {
         return NULL;
     }
     
-    // Busca bloques contiguos libres
     int start_block = find_free_blocks(blocks_needed);
     
     if (start_block == NUM_BLOCKS) {
-        return NULL;  // No hay memoria suficiente
+        return NULL;  // Not enough memory available
     }
     
-    // Marca los bloques como usados
     for (int i = 0; i < blocks_needed; i++) {
         mark_block_used(start_block + i);
     }
@@ -106,12 +99,11 @@ void * myMalloc(int size) {
     for (int i = 1; i < blocks_needed; i++) {
         mm.allocation_map[start_block + i] = BLOCK_CONTINUATION;
     }
-    
-    // Retorna puntero al inicio del bloque en el heap
+
+    // Returns a pointer to the beginning of the block in the heap
     return (void *)&mm.heap[start_block * BLOCK_SIZE];
 }
 
-// Libera memoria
 void myFree(void *ptr) {
     if (ptr == NULL) {
         return;
@@ -135,8 +127,8 @@ void myFree(void *ptr) {
     if (blocks_to_free == 0 || blocks_to_free == BLOCK_CONTINUATION) {
         return;
     }
-    
-    // Libera bloques contiguos hasta encontrar uno libre
+
+    // Frees contiguous blocks until a free one is found
     for (int i = 0; i < blocks_to_free && (start_block + i) < NUM_BLOCKS; i++) {
         mark_block_free(start_block + i);
         mm.allocation_map[start_block + i] = 0;
@@ -149,7 +141,6 @@ void myFree(void *ptr) {
     }
 }
 
-// Obtiene estadísticas de memoria
 void memstats(int *total, int *used, int *available) {
     if (total != NULL) {
         *total = HEAP_SIZE;
@@ -163,6 +154,7 @@ void memstats(int *total, int *used, int *available) {
         *available = HEAP_SIZE - (mm.blocks_used * BLOCK_SIZE);
     }
 }
+
 int isValidHeapPtr(void *ptr) {
     if (ptr == NULL) {
         return 0;
