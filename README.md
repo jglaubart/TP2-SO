@@ -1,4 +1,4 @@
-TP2-SO Glaubart - Pampuri# TP2 Sistemas Operativos (72.11)
+# TP2 Sistemas Operativos (72.11)
 
 ## Members
 
