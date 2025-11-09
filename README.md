@@ -46,11 +46,10 @@ Después de compilar, ejecutar el sistema operativo con:
 - **`man <comando>`**: Muestra el manual detallado de un comando específico
 - **`clear`**: Limpia la pantalla
 - **`time`**: Muestra la hora actual del sistema
-- **`regs`**: Imprime el último snapshot de registros (capturado con Ctrl+S)
+- **`regs`**: Imprime el último snapshot de registros (capturado con F12)
 
 #### Gestión de Procesos
 - **`ps`**: Lista todos los procesos activos con su PID, nombre, prioridad, estado, stack base y si están en foreground
-- **`getpid`**: Retorna el ID del proceso actual
 - **`kill <pid>`**: Termina el proceso con el PID especificado
 - **`nice <pid> <prioridad>`**: Cambia la prioridad de un proceso (0-5, mayor = más tiempo de CPU)
 - **`block <pid>`**: Alterna un proceso entre los estados READY y BLOCKED
@@ -67,12 +66,12 @@ Después de compilar, ejecutar el sistema operativo con:
 
 #### Comandos de Prueba
 - **`test_processes <max_procesos>`**: Crea y mata procesos aleatoriamente para probar la gestión de procesos
-- **`test_prio <valor_max>`**: Crea procesos con diferentes prioridades para demostrar el scheduling
+- **`test_prio <valor_max>`**: Crea procesos con diferentes prioridades para demostrar el scheduling. Crea tres procesos que suman hasta valor_max. Con valores grandes se ve la diferencia debido a las distintas prioridades.
 - **`test_sync <iteraciones> <usar_semaforo>`**: Prueba sincronización con o sin semáforos (0=sin sem, 1=con sem)
 - **`test_wait_children [cantidad_hijos]`**: Crea procesos hijos y espera a que todos terminen
 
 #### Programas de Demostración
-- **`loop <nombre> <ms>`**: Imprime un mensaje de saludo cada `ms` milisegundos (presionar ESC para salir)
+- **`loop <ms>`**: Imprime un mensaje de saludo cada `ms` milisegundos
 - **`mvar`**: Proceso interactivo multi-variable (usa semáforos, presionar Ctrl+K para cerrar)
 - **`snake`**: Lanza el juego de la serpiente
 - **`history`**: Muestra el historial de comandos
@@ -82,10 +81,9 @@ Después de compilar, ejecutar el sistema operativo con:
 - **`invop`**: Genera una excepción de código de operación inválido
 
 #### Control de Fuente
-- **`font <+|-|tamaño>`**: Ajusta el tamaño de la fuente
-  - `font +`: Incrementar tamaño de fuente
-  - `font -`: Disminuir tamaño de fuente
-  - `font <número>`: Establecer tamaño específico
+- **`font <increase|decrease>`**: Ajusta el tamaño de la fuente
+  - `font increase`: Incrementar tamaño de fuente
+  - `font decrease`: Disminuir tamaño de fuente
 
 ### Caracteres Especiales
 
@@ -107,11 +105,11 @@ Usar el ampersand `&` al final de un comando para ejecutarlo en background:
 
 ```bash
 # Ejecutar loop en background
-loop miproceso 1000 &
+loop 1000 &
 
 # Múltiples procesos en background
-loop proc1 500 &
-loop proc2 1000 &
+loop 500 &
+loop 1000 &
 ps
 ```
 
@@ -119,13 +117,12 @@ La shell retornará inmediatamente y se pueden seguir ingresando comandos mientr
 
 ### Atajos de Teclado
 
-- **Ctrl+S**: Capturar snapshot de registros (ver con comando `regs`)
+- **F12**: Capturar snapshot de registros (ver con comando `regs`)
 - **Ctrl+K**: Matar todos los procesos `mvar`
 - **Ctrl+C**: Interrumpir ejecución
 - **Ctrl+D**: Enviar EOF (End of File) - usar para salir de comandos como `cat`
 - **↑ / ↓**: En la terminal, navegar el historial de comandos
 - **Backspace**: Borrar el carácter anterior
-- **ESC**: Salir del comando `loop`
 
 ### Ejemplos de Uso
 
@@ -141,8 +138,8 @@ Hello World
 #### Ejemplo 2: Gestión de Procesos
 ```bash
 # Iniciar procesos en background
-loop proc1 1000 &
-loop proc2 500 &
+loop 1000 &
+loop 500 &
 
 # Listar procesos
 ps
@@ -216,13 +213,11 @@ ps
 ### Limitaciones
 1. **Limitación de Pipes**: Solo soporta **un pipe** (dos procesos máximo en un pipeline). Cadenas más complejas como `cmd1 | cmd2 | cmd3` no están soportadas.
 
-2. **Interacción de Procesos en Background**: Los procesos en background no pueden comunicarse fácilmente con la shell en foreground para entrada.
+2. **Manejo de Señales**: Soporte limitado de señales (Solo CTRL+C, CTRL+D y CTRL+K para mvar).
 
-3. **Manejo de Señales**: Soporte limitado de señales (principalmente Ctrl+K para procesos mvar).
+4. **Sistema de Archivos**: No hay sistema de archivos persistente.
 
-4. **Sistema de Archivos**: No hay sistema de archivos persistente - todo el I/O es efímero.
-
-5. **Ajuste Dinámico de Prioridad**: Las prioridades de los procesos pueden cambiarse vía `nice`, pero no hay ajuste automático de prioridad basado en uso de CPU o aging.
+5. **Ajuste Dinámico de Prioridad**: Las prioridades de los procesos pueden cambiarse via `nice`, pero no hay ajuste automático de prioridad basado en uso de CPU o aging.
 
 ---
 
@@ -232,8 +227,8 @@ ps
 - **Tamaño de Stack**: Cada proceso tiene un stack fijo de 4KB (`PROCESS_STACK_SIZE`)
 - **Buffer de Pipe**: Tamaño de buffer de pipe limitado
 - **Allocators de Memoria**:
-  - **Buddy**: Heap de 256KB con bloques mínimos de 32 bytes
-  - **Bitmap**: Heap de 64KB con granularidad de bloques de 64 bytes
+  - **Buddy**: Heap de 512KB con bloques mínimos de 32 bytes
+  - **Bitmap**: Heap de 512KB 
 - **Línea de Comandos**: Máximo 1024 caracteres por comando
 - **Argumentos**: Máximo 16 argumentos por comando
 - **Historial**: Almacena solo los últimos 10 comandos
