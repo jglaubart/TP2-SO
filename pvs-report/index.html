@@ -34,10 +34,10 @@
     <br class="clear">
   </div>
   <table cellpadding="0" cellspacing="0" border="0" class="infotopic">
-     <tr><th id="col_info">Date:</th><td>Mon Nov 10 18:15:24 2025</td></tr>
+     <tr><th id="col_info">Date:</th><td>Mon Nov 10 18:33:04 2025</td></tr>
      <tr><th id="col_info">PVS-Studio Version:</th><td>7.25.72091.324</td></tr>
      <tr><th id="col_info">Command Line:</th><td>plog-converter -a GA\:1,2 -t fullhtml -o /root/pvs-report /root/PVS-Studio.log </td></tr>
-     <tr><th id="col_info">Total Warnings (GA):</th><td>19</td></tr>
+     <tr><th id="col_info">Total Warnings (GA):</th><td>15</td></tr>
      <tr><th id="col_info">Fails/Info:</th><td>2</td></tr>
   </table>
   <table cellpadding="0" cellspacing="0" border="0" class="sortable" id="sorter">
@@ -162,35 +162,7 @@
     </tr>
     <tr>
       <td id="col_group">General Analysis</td>
-      <td id="col_file"><a target="_blank" href="sources/stdio.c_13.html#ln19">stdio.c:19</a></td>
-      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
-      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v618/">V618</td>
-      <td id="col_message">It's dangerous to call the 'printf' function in such a manner, as the line being passed could contain format specification. The example of the safe code: printf(&quot;%s&quot;, str);</td>
-    </tr>
-    <tr>
-      <td id="col_group">General Analysis</td>
-      <td id="col_file"><a target="_blank" href="sources/stdio.c_13.html#ln50">stdio.c:50</a></td>
-      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
-      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v618/">V618</td>
-      <td id="col_message">It's dangerous to call the 'fprintf' function in such a manner, as the line being passed could contain format specification. The example of the safe code: printf(&quot;%s&quot;, str);</td>
-    </tr>
-    <tr>
-      <td id="col_group">General Analysis</td>
-      <td id="col_file"><a target="_blank" href="sources/stdio.c_13.html#ln197">stdio.c:197</a></td>
-      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
-      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v618/">V618</td>
-      <td id="col_message">It's dangerous to call the 'fprintf' function in such a manner, as the line being passed could contain format specification. The example of the safe code: printf(&quot;%s&quot;, str);</td>
-    </tr>
-    <tr>
-      <td id="col_group">General Analysis</td>
-      <td id="col_file"><a target="_blank" href="sources/stdio.c_13.html#ln253">stdio.c:253</a></td>
-      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
-      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v618/">V618</td>
-      <td id="col_message">It's dangerous to call the 'fprintf' function in such a manner, as the line being passed could contain format specification. The example of the safe code: printf(&quot;%s&quot;, str);</td>
-    </tr>
-    <tr>
-      <td id="col_group">General Analysis</td>
-      <td id="col_file"><a target="_blank" href="sources/string.c_14.html#ln49">string.c:49</a></td>
+      <td id="col_file"><a target="_blank" href="sources/string.c_13.html#ln49">string.c:49</a></td>
       <td id="col_level" style="color:#FF0000"><b>High</b></td>
       <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v781/">V781</td>
       <td id="col_message">The value of the 'i' index is checked after it was used. Perhaps there is a mistake in program logic.</td>
