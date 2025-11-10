@@ -155,9 +155,9 @@ int32_t sys_read(int32_t fd, signed char * __user_buf, int32_t count) {
     PipeEndpoint *endpoint = &current->fds[READ_FD];
     if (endpoint->type == PIPE_ENDPOINT_CONSOLE) {
         int32_t i;
-        int8_t c;
+        int c;
         for(i = 0; i < count && (c = getKeyboardCharacter(AWAIT_RETURN_KEY | SHOW_BUFFER_WHILE_TYPING)) != EOF; i++){
-            *(__user_buf + i) = c;
+            *(__user_buf + i) =(char)c; // To avoid warnings on PVS
         }
         return i;
     }
