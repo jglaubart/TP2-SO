@@ -22,7 +22,7 @@ int _man(int argc, char *argv[]) {
 	for (int i = 0; i < commands_size; i++) {
 		const char *candidate = commands[i].name;
 		const char *target = command;
-		if (candidate == NULL || target == NULL) {
+		if (candidate == NULL) {
 			continue;
 		}
 
