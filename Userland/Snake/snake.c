@@ -261,19 +261,19 @@ static void welcomePlayers(void) {
 
 
     int dif_result = 0;
-    char difficulty[1] = {0};
+    char difficulty = 0;
 
     do{
         do{
             printf("\n\tEnter difficulty\n");
             printf("\t(E)asy, (M)edium, (H)ard, (D)emon: ");   
-            dif_result = scanf("%s", difficulty);
+            dif_result = scanf("%c", &difficulty);
             
         } while(dif_result != 1);
 
-    } while(!VALID_DIFFICULTY(*difficulty));
+    } while(!VALID_DIFFICULTY(difficulty));
 
-    setDifficulty(*difficulty);
+    setDifficulty(difficulty);
 
     clearScreen();
 
