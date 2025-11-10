@@ -334,11 +334,11 @@ int _mvar(int argc, char **argv) {
 
 	mvar_tracking_init();
 	if (mvar_has_active_children()) {
-		printf("mvar: readers/writers already running; finish them with 'mvar-close' first\n");
+		printf("mvar: readers/writers already running; finish them with 'mvar-kill' first\n");
 		return -1;
 	}
 	if (kernel_mvar.initialized) {
-		printf("mvar: kernel MVar already active; run 'mvar-close' to reset it\n");
+		printf("mvar: kernel MVar already active; run 'mvar-kill' to reset it\n");
 		return -1;
 	}
 	mvar_reset_tracking();
@@ -348,7 +348,7 @@ int _mvar(int argc, char **argv) {
 		return -1;
 	}
 
-	const char *reminder = "Remember to run 'mvar-close' (Ctrl+K) after this to clean up the kernel MVar";
+	const char *reminder = "Press (Ctrl+K) to kill the processes and clean up the kernel MVar";
 	printf("%s%s%s\n", COLOR_BLUE, reminder, COLOR_RESET);
 
 	for (int i = 0; i < numW; i++) {
@@ -397,7 +397,7 @@ int _mvar(int argc, char **argv) {
 
 int _mvar_close(int argc, char **argv) {
 	if (argc != 1) {
-		printf("Usage: mvar-close\n");
+		printf("Usage: mvar-kill\n");
 		return -1;
 	}
 
@@ -407,6 +407,6 @@ int _mvar_close(int argc, char **argv) {
 	kernel_mvar_destroy();
 	mvar_reset_tracking();
 
-	printf("mvar-close: terminated %d processes and released the kernel MVar\n", killed);
+	printf("mvar-kill: terminated %d processes and released the kernel MVar\n", killed);
 	return 0;
 }
