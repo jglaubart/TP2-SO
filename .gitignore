@@ -23,3 +23,13 @@
 
 # zip files
 *.zip
+
+# PVS-Studio
+PVS-Studio.log
+PVS-Studio.cfg
+*.PVS-Studio.cfg
+pvs-report/
+pvs-html-report/
+strace_out
+compile_commands.json
+report.json
