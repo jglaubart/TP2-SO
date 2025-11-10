@@ -8,7 +8,7 @@ int _shell_kill(int argc, char * argv[]){
         return 1;
     }
 
-    const char *command_name = (argv[0] != NULL) ? argv[0] : "kill";
+    const char *command_name = argv[0];
     char * pid_str = argv[1];
 
     int pid = 0;

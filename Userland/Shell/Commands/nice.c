@@ -8,13 +8,11 @@ enum {
 };
 
 int _nice(int argc, char **argv) {
-    const char *command_name = (argv != NULL && argv[0] != NULL) ? argv[0] : "nice";
-
-    if (argc != 3) {
+       if (argc != 3 || argv == NULL || argv[1] == NULL || argv[2] == NULL) {
         fprintf(FD_STDERR, "Usage: nice <pid> <priority>\n");
         return 1;
     }
-
+    const char *command_name = argv[0];
     int pid = 0;
     int priority = 0;
 
@@ -46,4 +44,3 @@ int _nice(int argc, char **argv) {
     printf("%s: pid %d priority set to %d\n", command_name, pid, priority);
     return 0;
 }
-
