@@ -73,7 +73,7 @@ uint16_t getXBufferPosition(void) {
     return xBufferPosition;
 }
 
-static char buffer[64] = { '0' };
+static char buffer[64] = { '0', '\0' };
 
 static inline void renderFromBitmap(char * bitmap, uint64_t xBase, uint64_t yBase);
 static inline void renderAscii(char ascii, uint64_t x, uint64_t y);
@@ -103,10 +103,8 @@ static inline void renderFromBitmap(char * bitmap, uint64_t xBase, uint64_t yBas
 // * Uses inline to avoid stack frames on hot paths *
 // `x` and `y` are the TOP LEFT corner positions
 static inline void renderAscii(char ascii, uint64_t x, uint64_t y) {
-    if (ascii < 128) {
         // The function only takes in a slice of the whole matrix
         renderFromBitmap(bitmap + (ascii * glyphSizeY), x, y);
-    }
 }
 
 static void scrollBufferPositionIfNeeded(void) {
