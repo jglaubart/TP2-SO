@@ -33,3 +33,4 @@ pvs-html-report/
 strace_out
 compile_commands.json
 report.json
+.pvsconfig
