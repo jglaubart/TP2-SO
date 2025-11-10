@@ -1,0 +1,197 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>PVS-Studio HTML Report</title>
+<style type="text/css">
+   TABLE {
+    width: 100%;
+   }
+   #col_group, #col_level, #col_code, #col_cwe, #col_sast {
+    text-align: center;
+    white-space: nowrap;
+    width: 0;
+   }
+   #col_file, #col_info, #col_projects {
+    white-space: nowrap;
+    text-align: left;
+    width: 0;
+   }
+   #col_info {
+    width: 120px;
+   }
+   #col_message {
+    text-align: left;
+   }
+  </style>
+<link rel="stylesheet" href="style.css" />
+<script type="text/javascript" src="script.js"></script>
+</head>
+<body>
+  <div class="header">
+    <img src="images/logo.png" alt=""/>
+    <h1>PVS-Studio Analysis Results</h1>
+    <br class="clear">
+  </div>
+  <table cellpadding="0" cellspacing="0" border="0" class="infotopic">
+     <tr><th id="col_info">Date:</th><td>Mon Nov 10 18:15:24 2025</td></tr>
+     <tr><th id="col_info">PVS-Studio Version:</th><td>7.25.72091.324</td></tr>
+     <tr><th id="col_info">Command Line:</th><td>plog-converter -a GA\:1,2 -t fullhtml -o /root/pvs-report /root/PVS-Studio.log </td></tr>
+     <tr><th id="col_info">Total Warnings (GA):</th><td>19</td></tr>
+     <tr><th id="col_info">Fails/Info:</th><td>2</td></tr>
+  </table>
+  <table cellpadding="0" cellspacing="0" border="0" class="sortable" id="sorter">
+    <tr>
+      <th class="gsort">Group</th>
+      <th>Location</th>
+      <th class="lsort">Level</th>
+      <th class="vsort">Code</th>
+      <th>Message</th>
+    </tr>
+    <tr>
+      <td id="col_group">Fail/Info</td>
+      <td id="col_file"><a target="_blank" href="sources/bmfs.c_0.html#ln1">bmfs.c:1</a></td>
+      <td id="col_level" style="color:#000000"><b></b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v009/">V009</td>
+      <td id="col_message">To use free version of PVS-Studio, source code files are required to start with a special comment.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/fonts.c_1.html#ln76">fonts.c:76</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v1009/">V1009</td>
+      <td id="col_message">Check the array initialization. Only the first element is initialized explicitly. The rest elements are initialized with zeros.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/fonts.c_1.html#ln106">fonts.c:106</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v547/">V547</td>
+      <td id="col_message">Expression 'ascii &lt; 128' is always true. The value range of char type: [-128, 127].</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/syscallDispatcher.c_2.html#ln159">syscallDispatcher.c:159</a></td>
+      <td id="col_level" style="color:#FF0000"><b>High</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v739/">V739</td>
+      <td id="col_message">EOF should not be compared with a value of the 'char' type. Consider using the 'int' type.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/pipes.c_3.html#ln309">pipes.c:309</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v547/">V547</td>
+      <td id="col_message">Expression 'pipe-&gt;closed' is always false.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/process.c_4.html#ln215">process.c:215</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v560/">V560</td>
+      <td id="col_message">A part of conditional expression is always false: pid &gt;= 64.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/process.c_4.html#ln295">process.c:295</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v547/">V547</td>
+      <td id="col_message">Expression 'process-&gt;argv != NULL' is always true.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/strings.c_5.html#ln36">strings.c:36</a></td>
+      <td id="col_level" style="color:#FF0000"><b>High</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v781/">V781</td>
+      <td id="col_message">The value of the 'i' index is checked after it was used. Perhaps there is a mistake in program logic.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/man.c_6.html#ln25">man.c:25</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v560/">V560</td>
+      <td id="col_message">A part of conditional expression is always false: target == NULL.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/mvar.c_7.html#ln49">mvar.c:49</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v707/">V707</td>
+      <td id="col_message">Giving short names to global variables is considered to be bad practice. It is suggested to rename 'nR' variable.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/mvar.c_7.html#ln50">mvar.c:50</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v707/">V707</td>
+      <td id="col_message">Giving short names to global variables is considered to be bad practice. It is suggested to rename 'nW' variable.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/nice.c_8.html#ln21">nice.c:21</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v1004/">V1004</td>
+      <td id="col_message">The 'argv' pointer was used unsafely after it was verified against nullptr. Check lines: 11, 21.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/ps.c_9.html#ln57">ps.c:57</a></td>
+      <td id="col_level" style="color:#FF0000"><b>High</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v547/">V547</td>
+      <td id="col_message">Expression 'header_state_padding &lt; 2' is always false.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/shell.c_10.html#ln362">shell.c:362</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v547/">V547</td>
+      <td id="col_message">Expression 'current-&gt;argc &gt; 0' is always true.</td>
+    </tr>
+    <tr>
+      <td id="col_group">Fail/Info</td>
+      <td id="col_file"><a target="_blank" href="sources/_loader.c_11.html#ln1">_loader.c:1</a></td>
+      <td id="col_level" style="color:#000000"><b></b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v009/">V009</td>
+      <td id="col_message">To use free version of PVS-Studio, source code files are required to start with a special comment.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/snake.c_12.html#ln270">snake.c:270</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v576/">V576</td>
+      <td id="col_message">Incorrect format. Consider checking the second actual argument of the 'scanf' function. It's dangerous to use string specifier without width specification. Buffer overflow is possible.</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/stdio.c_13.html#ln19">stdio.c:19</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v618/">V618</td>
+      <td id="col_message">It's dangerous to call the 'printf' function in such a manner, as the line being passed could contain format specification. The example of the safe code: printf(&quot;%s&quot;, str);</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/stdio.c_13.html#ln50">stdio.c:50</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v618/">V618</td>
+      <td id="col_message">It's dangerous to call the 'fprintf' function in such a manner, as the line being passed could contain format specification. The example of the safe code: printf(&quot;%s&quot;, str);</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/stdio.c_13.html#ln197">stdio.c:197</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v618/">V618</td>
+      <td id="col_message">It's dangerous to call the 'fprintf' function in such a manner, as the line being passed could contain format specification. The example of the safe code: printf(&quot;%s&quot;, str);</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/stdio.c_13.html#ln253">stdio.c:253</a></td>
+      <td id="col_level" style="color:#FFA500"><b>Medium</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v618/">V618</td>
+      <td id="col_message">It's dangerous to call the 'fprintf' function in such a manner, as the line being passed could contain format specification. The example of the safe code: printf(&quot;%s&quot;, str);</td>
+    </tr>
+    <tr>
+      <td id="col_group">General Analysis</td>
+      <td id="col_file"><a target="_blank" href="sources/string.c_14.html#ln49">string.c:49</a></td>
+      <td id="col_level" style="color:#FF0000"><b>High</b></td>
+      <td id="col_code"><a target="_blank" href="https://pvs-studio.com/en/docs/warnings/v781/">V781</td>
+      <td id="col_message">The value of the 'i' index is checked after it was used. Perhaps there is a mistake in program logic.</td>
+    </tr>

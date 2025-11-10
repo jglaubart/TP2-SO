@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+
 #include <keyboard.h>
 #include <fonts.h>
 #include <interrupts.h>
@@ -44,7 +47,7 @@ typedef struct {
     SpecialKeyHandler fn;
 } RegisteredKeys;
 
-static RegisteredKeys KeyFnMap[ F12_KEY - ESCAPE_KEY + 1 ] = {0};
+static RegisteredKeys KeyFnMap[ F12_KEY + 1 ] = {0};
 
 // QEMU source https://github.com/qemu/qemu/blob/master/pc-bios/keymaps/en-us
 // http://flint.cs.yale.edu/feng/cos/resources/BIOS/Resources/assembly/makecodes.html
@@ -159,7 +162,7 @@ void clearKeyFnMapNonKernel(SpecialKeyHandler * map) {
 }
 
 uint8_t registerSpecialKey(enum KEYS scancode, SpecialKeyHandler fn, uint8_t registeredFromKernel) {
-    if (IS_KEYCODE(scancode) && ((registeredFromKernel != 0 || (registeredFromKernel == 0 && KeyFnMap[scancode].fn == NULL)))) {
+    if (IS_KEYCODE(scancode) && (registeredFromKernel != 0 || KeyFnMap[scancode].fn == NULL)) {
         KeyFnMap[scancode].fn = fn;
         KeyFnMap[scancode].registered_from_kernel = registeredFromKernel;
         return 1;
@@ -229,7 +232,9 @@ uint8_t keyboardHandler(){
         return scancode; // do not write to buffer anymore, subsequent keys are not processed into the buffer
     }
     
-    switch (makeCode(scancode)) {
+    uint8_t make = makeCode(scancode);
+
+    switch (make) {
         case SHIFT_KEY_L:
         case SHIFT_KEY_R:
             SHIFT_KEY_PRESSED = is_pressed;
@@ -243,10 +248,9 @@ uint8_t keyboardHandler(){
             }
             break;
 
-        return scancode;
     }
     
-    if (! (is_pressed && IS_KEYCODE(scancode)) ) return scancode; // ignore break or unsupported scancodes
+    if (! (is_pressed && IS_KEYCODE(make)) ) return scancode; // ignore break or unsupported scancodes
 
     if (CONTROL_KEY_PRESSED && makeCode(scancode) == C_KEY) {
         int status = killForegroundProcess();
@@ -272,13 +276,13 @@ uint8_t keyboardHandler(){
     }
     
     if ((keyboard_options & MODIFY_BUFFER) != 0) {
-        int8_t c = scancodeMap[scancode][SHIFT_KEY_PRESSED];
+        int8_t c = scancodeMap[make][SHIFT_KEY_PRESSED];
 
         if (CAPS_LOCK_KEY_PRESSED == 1) {
             c = TO_UPPER(c);
         }
 
-        if (IS_PRINTABLE(scancode)) {
+        if (IS_PRINTABLE(make)) {
             if(c == RETURN_KEY){
                 c = NEW_LINE_CHAR;
                 // Handle \n on the keyboard interrupt handler, to avoid the possibility of triggering multiple \n inputs continously on the same sys_read
@@ -297,8 +301,8 @@ uint8_t keyboardHandler(){
     }
 
     // Call the registered function for the key, if any
-    if (KeyFnMap[scancode].fn != 0) {
-        KeyFnMap[scancode].fn(scancode);
+    if (KeyFnMap[make].fn != 0) {
+        KeyFnMap[make].fn(make);
     }
 
     return scancode;

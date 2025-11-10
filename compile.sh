@@ -48,17 +48,74 @@ fi
 # Start container
 docker start "$CONTAINER_NAME" &> /dev/null
 echo "${GREEN}Container $CONTAINER_NAME started.${NC}"
-echo "${YELLOW}Compiling with ${ALLOCATOR} memory allocator...${NC}"
 
-# Compiles
-docker exec -it "$CONTAINER_NAME" make clean -C /root/ && \
-docker exec -it "$CONTAINER_NAME" make all -C /root/Toolchain && \
-docker exec -it "$CONTAINER_NAME" make all -C /root/ ALLOCATOR="$ALLOCATOR"
+# ========================
+# PVS-STUDIO (opcional)
+# Uso: ./compile.sh [buddy|bitmap] [--pvs]
+# Genera /root/pvs-report (montado a ./pvs-report en host)
+# ========================
+DO_PVS=0
+if [[ "$2" == "--pvs" ]] || [[ "$1" == "--pvs" ]]; then
+  DO_PVS=1
+fi
 
+if [ $DO_PVS -eq 0 ]; then
+  # Compila normal (como siempre)
+  echo "${YELLOW}Compiling with ${ALLOCATOR} memory allocator...${NC}"
+  docker exec -it "$CONTAINER_NAME" make clean -C /root/ && \
+  docker exec -it "$CONTAINER_NAME" make all -C /root/Toolchain && \
+  docker exec -it "$CONTAINER_NAME" make all -C /root/ ALLOCATOR="$ALLOCATOR"
+else
+  echo "${YELLOW}Running build under PVS-Studio trace with ${ALLOCATOR} memory allocator...${NC}"
+  docker exec -it "$CONTAINER_NAME" bash -lc '
+    set -e
+    # 1) Instalar PVS-Studio si hace falta (Debian/Ubuntu)
+    if ! command -v pvs-studio-analyzer >/dev/null 2>&1; then
+      echo "Installing PVS-Studio..."
+      apt-get update && apt-get install -y wget gnupg2 lsb-release
+      wget -q -O - https://pvs-studio.com/files/keys/ABF3B1EA.key | apt-key add -
+      echo "deb http://repo.pvs-studio.com/$(lsb_release -is | tr "[:upper:]" "[:lower:]") $(lsb_release -cs) main" > /etc/apt/sources.list.d/pvs-studio.list
+      apt-get update && apt-get install -y pvs-studio
+      echo "PVS-Studio installed successfully."
+    else
+      echo "PVS-Studio already installed."
+    fi
+
+    cd /root
+    rm -f strace_out PVS-Studio.log
+    
+    # 2) Trazamos toda la build (clean + toolchain + proyecto)
+    echo "Tracing build with PVS-Studio..."
+    pvs-studio-analyzer trace -- /bin/bash -lc "
+      make clean -C /root/ &&
+      make all -C /root/Toolchain &&
+      make all -C /root ALLOCATOR='"$ALLOCATOR"'
+    "
+    
+    # 3) Analizamos el código
+    echo "Analyzing code with PVS-Studio..."
+    # Para proyectos open-source, usar credenciales FREE
+    pvs-studio-analyzer credentials PVS-Studio Free FREE-FREE-FREE-FREE 2>/dev/null || true
+    pvs-studio-analyzer analyze -f strace_out -o /root/PVS-Studio.log
+    
+    # 4) Generamos reporte HTML
+    echo "Generating HTML report..."
+    rm -rf /root/pvs-report
+    plog-converter -a GA:1,2 -t fullhtml -o /root/pvs-report /root/PVS-Studio.log
+    
+    echo "PVS-Studio analysis complete!"
+  '
+fi
 
 if [ $? -ne 0 ]; then
-    echo "${RED}Compilation failed.${NC}"
+    echo "${RED}Compilation or analysis failed.${NC}"
     exit 1
 fi
 
-echo "${GREEN}Compilation finished.${NC}"
+echo "${GREEN}Done.${NC}"
+if [ $DO_PVS -eq 1 ]; then
+    echo "${GREEN}PVS-Studio report generated at: ./pvs-report/index.html${NC}"
+    echo "${YELLOW}Open it in your browser to see the analysis results.${NC}"
+else
+    echo "${GREEN}Compilation finished.${NC}"
+fi
