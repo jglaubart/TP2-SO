@@ -50,16 +50,9 @@ case $OS in
         ;;
 esac
 
-# Flags adicionales (por ejemplo, para GDB)
-EXTRA_FLAGS=""
-if [ "$1" = "gdb" ]; then
-    EXTRA_FLAGS="-s -S"
-    echo "Modo GDB habilitado (-s -S)"
-fi
-
 # Ejecutar QEMU con la configuración adecuada
-echo "Ejecutando: qemu-system-x86_64 -hda Image/x64BareBonesImage.qcow2 -m 512 $AUDIO_CONFIG $EXTRA_FLAGS"
-qemu-system-x86_64 -hda Image/x64BareBonesImage.qcow2 -m 512 $AUDIO_CONFIG $EXTRA_FLAGS
+echo "Ejecutando: qemu-system-x86_64 -hda Image/x64BareBonesImage.qcow2 -m 512 $AUDIO_CONFIG"
+qemu-system-x86_64 -hda Image/x64BareBonesImage.qcow2 -m 512 $AUDIO_CONFIG
 
 # Si lo anterior falla, probar estas alternativas:
 if [ $? -ne 0 ] && [ $IS_WSL -eq 1 ]; then
