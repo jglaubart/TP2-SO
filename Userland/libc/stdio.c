@@ -16,7 +16,7 @@ static void printBase(int fd, int num, int base);
 // static void printFloat(int fd, float num);
 
 void puts(const char * str) {
-    printf("%s", str);
+    printf(str);
     printf("\n");
 }
 
@@ -47,7 +47,7 @@ void vfprintf(int fd, const char * format, va_list args) {
                     sys_write(fd, &c, 1);
                     break ;
                 }
-                case 's': fprintf(fd, "%s", va_arg(args, char *)); break ;
+                case 's': fprintf(fd, va_arg(args, char *)); break ;
                 case '%': sys_write(fd, "%", 1); break ;
             }
             i++;
@@ -194,7 +194,7 @@ int scanf(const char * format, ...) {
 }
 
 void perror(const char * s1) {
-    fprintf(FD_STDERR, "%s", s1);
+    fprintf(FD_STDERR, s1);
 }
 
 int getchar(void) {
@@ -250,5 +250,5 @@ static uint32_t uintToBase(uint64_t value, char * buffer, uint32_t base)
 static void printBase(int fd, int num, int base) {
     if (num < 0) {fprintf(fd, "-");}
     uintToBase(num, buffer, base);
-    fprintf(fd, "%s", buffer);
+    fprintf(fd, buffer);
 }
