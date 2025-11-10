@@ -46,8 +46,8 @@ typedef struct {
 } KernelMVar;
 
 static KernelMVar kernel_mvar = {0};
-static int numR;
-static int numW;
+static int nR;
+static int nW;
 static int mvar_child_pids[MAX_TRACKED_MVAR_CHILDREN];
 static int mvar_child_count = 0;
 static uint8_t mvar_tracking_initialized = 0;
@@ -324,10 +324,10 @@ int _mvar(int argc, char **argv) {
 		return -1;
 	}
 
-	numW = satoi(argv[1]);
-	numR = satoi(argv[2]);
+	nW = satoi(argv[1]);
+	nR = satoi(argv[2]);
 
-	if (numW <= 0 || numR <= 0) {
+	if (nW <= 0 || nR <= 0) {
 		printf("mvar: invalid writers/readers\n");
 		return -1;
 	}
@@ -351,7 +351,7 @@ int _mvar(int argc, char **argv) {
 	const char *reminder = "Remember to run 'mvar-close' (Ctrl+K) after this to clean up the kernel MVar";
 	printf("%s%s%s\n", COLOR_BLUE, reminder, COLOR_RESET);
 
-	for (int i = 0; i < numW; i++) {
+	for (int i = 0; i < nW; i++) {
 		char letter[2];
 		letter[0] = 'A' + (i % 26);
 		letter[1] = '\0';
@@ -371,7 +371,7 @@ int _mvar(int argc, char **argv) {
 		}
 	}
 
-	for (int i = 0; i < numR; i++) {
+	for (int i = 0; i < nR; i++) {
 		char idbuf[3];
 		idbuf[0] = 'R';
 		idbuf[1] = '0' + (i % 10);

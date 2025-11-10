@@ -296,7 +296,6 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
             myFree(process->argv[i]);
         }
         myFree(process->argv);
-    
         myFree(process);
         myFree(stack_base);
         semDestroy(process->wait_sem);
