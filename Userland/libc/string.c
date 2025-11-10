@@ -46,11 +46,13 @@ void strcpy(char * dest, char * src) {
 
 void strncpy(char * dest, char * src, int n) {
     int i = 0;
-    while (src[i] != 0 && i < n) {
+    while (i < n && src[i] != 0) {
         dest[i] = src[i];
         i++;
     }
-    dest[i] = 0;
+    if (i < n) {
+        dest[i] = 0;
+    }
 }
 
 char * strtok(char * s1, const char * s2) {
@@ -80,5 +82,4 @@ char * strtok(char * s1, const char * s2) {
 
     return s1;
 }
-
 

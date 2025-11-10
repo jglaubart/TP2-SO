@@ -33,9 +33,11 @@ int64_t strlen(const char *str) {
 
 void strncpy(char * dest, char * src, int n) {
     int i = 0;
-    while (src[i] != 0 && i < n) {
+    while (i < n && src[i] != 0) {
         dest[i] = src[i];
         i++;
     }
-    dest[i] = 0;
+    if (i < n) {
+        dest[i] = 0;
+    }
 }
