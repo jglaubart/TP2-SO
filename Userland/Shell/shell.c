@@ -359,7 +359,7 @@ static int parse_commands(char *line, CommandInvocation *calls, int *count, char
 		char *token = strtok(segment_start, " ");
 		while (token != NULL) {
 			if (current->argc >= MAX_ARGUMENTS - 1) {
-				*unknown = current->argc > 0 ? current->argv[0] : NULL;
+				*unknown = current->argv[0];
 				return -2;
 			}
 			current->argv[current->argc++] = token;
