@@ -2,7 +2,7 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include "commands.h"
 
-int _ps(int argc, char * argv[]){ // TODO: MODOFICAR, ver de hacer mas corto o mover de archivo
+int _ps(int argc, char * argv[]){ 
     if (argc > 1) {
 		perror("Usage: ps\n");
 		return 1;
