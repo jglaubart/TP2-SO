@@ -212,7 +212,7 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
     }
 
     int pid = getNextPid();
-    if (pid < 0 || pid >= MAX_PROCESSES) {
+    if (pid < 0) {
         return NULL;
     }
 
@@ -292,12 +292,11 @@ Process * createProcess(void * function, int argc, char ** argv, ProcessPriority
 
     uint8_t * initial_rsp = stackInit(stack_top, function, process->argc, process->argv);
     if (initial_rsp == NULL) {
-        if (process->argv != NULL) {
-            for (int i = 0; i < process->argc; i++) {
-                myFree(process->argv[i]);
-            }
-            myFree(process->argv);
+        for (int i = 0; i < process->argc; i++) {
+            myFree(process->argv[i]);
         }
+        myFree(process->argv);
+    
         myFree(process);
         myFree(stack_base);
         semDestroy(process->wait_sem);

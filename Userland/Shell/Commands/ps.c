@@ -54,9 +54,6 @@ int _ps(int argc, char * argv[]){ // TODO: MODOFICAR, ver de hacer mas corto o m
 
     const int state_header_target = 10;
     int header_state_padding = state_header_target - 5; /* "State" */
-    if (header_state_padding < 2) {
-        header_state_padding = 2;
-    }
     char padding_state_header[header_state_padding + 1];
     j = 0;
     for (; j < header_state_padding; j++) {
