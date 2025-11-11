@@ -1,8 +1,0 @@
-# PVS-Studio Configuration
-# Exclude third-party code and build artifacts from analysis
-
-exclude-path = /root/Toolchain/
-exclude-path = /root/Image/
-exclude-path = *.o
-exclude-path = *.bin
-exclude-path = *.elf

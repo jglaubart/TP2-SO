@@ -249,3 +249,10 @@ Para el trabajo practico utilizamos GitHub Copilot y ChatGPT eventualmente para:
 - **Bitmap Allocator**: Enfoque estándar de asignación basada en bitmap
 - **Implementación de Queue**: Cola de prioridad personalizada para scheduling de procesos
 - **Bootloader**: Usa Pure64 y BMFS del proyecto BareMetal OS
+
+### Análisis con PVS-studio
+El análisis con PVS-studio no reporta errores dentro del código implementado.
+Se reportaron los siguientes falsos positivos:
+- Reportes acerca del archivo bmfs.c el cual no petenece al codigo implementado
+- `Kernel/pipes/pipes.c:308-309`: *"expression 'pipe->closed' is always false"*; otro proceso puede cerrar el pipe mientras este espera el semáforo, por eso se repite el chequeo tras despertarse.
+

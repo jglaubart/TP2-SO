@@ -1,5 +1,4 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+
 
 #include <stdio.h>
 #include <string.h>
@@ -14,10 +13,11 @@ static char buffer[64] = {0};
 static uint32_t uintToBase(uint64_t value, char * buffer, uint32_t base);
 static void printBase(int fd, int num, int base);
 // static void printFloat(int fd, float num);
+static void writeString(int fd, const char *str);
 
 void puts(const char * str) {
-    printf(str);
-    printf("\n");
+    writeString(FD_STDOUT, str);
+    writeString(FD_STDOUT, "\n");
 }
 
 void vfprintf(int fd, const char * format, va_list args) {
@@ -47,7 +47,9 @@ void vfprintf(int fd, const char * format, va_list args) {
                     sys_write(fd, &c, 1);
                     break ;
                 }
-                case 's': fprintf(fd, va_arg(args, char *)); break ;
+                case 's':
+                    writeString(fd, va_arg(args, char *));
+                    break ;
                 case '%': sys_write(fd, "%", 1); break ;
             }
             i++;
@@ -194,7 +196,7 @@ int scanf(const char * format, ...) {
 }
 
 void perror(const char * s1) {
-    fprintf(FD_STDERR, s1);
+    writeString(FD_STDERR, s1);
 }
 
 int getchar(void) {
@@ -248,7 +250,44 @@ static uint32_t uintToBase(uint64_t value, char * buffer, uint32_t base)
 }
 
 static void printBase(int fd, int num, int base) {
-    if (num < 0) {fprintf(fd, "-");}
+    if (num < 0) {
+        sys_write(fd, "-", 1);
+    }
     uintToBase(num, buffer, base);
-    fprintf(fd, buffer);
+    writeString(fd, buffer);
+}
+
+static void writeString(int fd, const char *str) {
+    if (str == NULL) {
+        str = "(null)";
+    }
+
+    int i = 0;
+    int chunkStart = 0;
+
+    while (str[i] != 0) {
+        if (str[i] == '\e') {
+            if (i > chunkStart) {
+                sys_write(fd, str + chunkStart, i - chunkStart);
+            }
+#ifdef ANSI_4_BIT_COLOR_SUPPORT
+            sys_write(fd, &str[i], 0);
+            parseANSI(str, &i);
+#else
+            do {
+                i++;
+            } while (str[i] != 0 && str[i] != 'm');
+            if (str[i] == 'm') {
+                i++;
+            }
+#endif
+            chunkStart = i;
+        } else {
+            i++;
+        }
+    }
+
+    if (i > chunkStart) {
+        sys_write(fd, str + chunkStart, i - chunkStart);
+    }
 }
