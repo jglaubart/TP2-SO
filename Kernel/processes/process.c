@@ -344,7 +344,7 @@ static int initProcessMain(void) {
             panic("Init process without shell entry");
         }
 
-        char * shellArgv[] = { "shell", NULL };
+        char * shellArgv[] = { "sh", NULL };
         Process * shell = createProcess(init_shell_entry, 1, shellArgv, MID_PRIORITY, INIT_PROCESS_PID, 0);
         if (shell == NULL) {
             panic("Failed to launch shell process");
