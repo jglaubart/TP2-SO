@@ -255,4 +255,3 @@ El análisis con PVS-studio no reporta errores dentro del código implementado.
 Se reportaron los siguientes falsos positivos:
 - Reportes acerca del archivo bmfs.c el cual no petenece al codigo implementado
 - `Kernel/pipes/pipes.c:308-309`: *"expression 'pipe->closed' is always false"*; otro proceso puede cerrar el pipe mientras este espera el semáforo, por eso se repite el chequeo tras despertarse.
-
