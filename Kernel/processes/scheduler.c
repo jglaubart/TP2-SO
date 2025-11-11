@@ -9,11 +9,15 @@
 #include "strings.h"
 #include "memory.h"
 
+#define STARVATION_THRESHOLD 5
+
 static void idleTask(void);
 static void validateScheduler(void);
 static void enqueueReadyProcess(Process *process);
 static Process *dequeueNextReadyProcess(void);
 static int removeProcessFromQueue(QueueADT queue, Process *process);
+static void ageWaitingPriorities(void);
+static Process *tryDequeueAtPriority(int priority);
 
 typedef struct scheduler {
     QueueADT readyQueues[MAX_PRIORITY + 1];
@@ -22,6 +26,8 @@ typedef struct scheduler {
     int firstInterrupt;
     int currentQuantum;      // Current quantum counter for running process
     int quantumLimit;        // Quantum limit based on priority
+    int starvationCounters[MAX_PRIORITY + 1];
+    int starvationThreshold;
 } Scheduler;
 
 static Scheduler *scheduler = NULL;
@@ -61,6 +67,10 @@ int initScheduler() {
 
     scheduler->currentQuantum = 0;
     scheduler->quantumLimit = 0;
+    scheduler->starvationThreshold = STARVATION_THRESHOLD;
+    for (int priority = MIN_PRIORITY; priority <= MAX_PRIORITY; priority++) {
+        scheduler->starvationCounters[priority] = 0;
+    }
     char ** idleArgv = myMalloc(sizeof(char *) * 2);
     idleArgv[0] = "idle";
     idleArgv[1] = NULL;
@@ -110,7 +120,8 @@ uint8_t *schedule(uint8_t *rsp) {
     
     scheduler->firstInterrupt = 0;
 
-    
+
+    ageWaitingPriorities();
     Process *nextProcess = dequeueNextReadyProcess();
     if (nextProcess == NULL) {
         /*
@@ -233,12 +244,31 @@ static void enqueueReadyProcess(Process *process) {
 
 static Process *dequeueNextReadyProcess(void) {
     for (int priority = MAX_PRIORITY; priority >= MIN_PRIORITY; priority--) {
-        QueueADT queue = scheduler->readyQueues[priority];
-        if (queue != NULL && !queueIsEmpty(queue)) {
-            Process *next = NULL;
-            if (dequeue(queue, &next) != NULL) {
-                return next;
+        if (scheduler->starvationCounters[priority] >= scheduler->starvationThreshold) {
+            Process *boosted = tryDequeueAtPriority(priority);
+            if (boosted != NULL) {
+                return boosted;
             }
+        }
+    }
+
+    for (int priority = MAX_PRIORITY; priority >= MIN_PRIORITY; priority--) {
+        Process *next = tryDequeueAtPriority(priority);
+        if (next != NULL) {
+            return next;
+        }
+    }
+
+    return NULL;
+}
+
+static Process *tryDequeueAtPriority(int priority) {
+    QueueADT queue = scheduler->readyQueues[priority];
+    if (queue != NULL && !queueIsEmpty(queue)) {
+        Process *next = NULL;
+        if (dequeue(queue, &next) != NULL) {
+            scheduler->starvationCounters[priority] = 0;
+            return next;
         }
     }
     return NULL;
@@ -251,4 +281,17 @@ static int removeProcessFromQueue(QueueADT queue, Process *process) {
 
     Process *target = process;
     return queueRemove(queue, &target) == NULL ? -1 : 0;
+}
+
+static void ageWaitingPriorities(void) {
+    for (int priority = MIN_PRIORITY; priority <= MAX_PRIORITY; priority++) {
+        QueueADT queue = scheduler->readyQueues[priority];
+        if (queue != NULL && !queueIsEmpty(queue)) {
+            if (scheduler->starvationCounters[priority] < scheduler->starvationThreshold) {
+                scheduler->starvationCounters[priority]++;
+            }
+        } else {
+            scheduler->starvationCounters[priority] = 0;
+        }
+    }
 }

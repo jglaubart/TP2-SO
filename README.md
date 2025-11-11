@@ -202,7 +202,7 @@ ps
 ## Requerimientos Faltantes o Parcialmente Implementados
 
 ### Completamente Implementados
-- Scheduling de procesos con prioridades (round-robin dentro de cada nivel de prioridad)
+- Scheduling de procesos con prioridades (round-robin dentro de cada nivel) y aging simple para evitar starvation entre colas
 - Comunicación entre procesos mediante pipes
 - Ejecución de procesos en background
 - Gestión de memoria con allocators buddy y bitmap
@@ -217,7 +217,7 @@ ps
 
 4. **Sistema de Archivos**: No hay sistema de archivos persistente.
 
-5. **Ajuste Dinámico de Prioridad**: Las prioridades de los procesos pueden cambiarse via `nice`, pero no hay ajuste automático de prioridad basado en uso de CPU o aging.
+5. **Ajuste Dinámico de Prioridad**: Solo hay aging por cola para evitar starvation; no existe ajuste más específico basado en uso de CPU de cada proceso.
 
 ---
 
