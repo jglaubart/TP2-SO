@@ -4,7 +4,6 @@
 #include "scheduler.h"
 #include "panic.h"
 #include "interrupts.h"
-#include "queue.h"
 #include "process.h"
 #include "strings.h"
 #include "memory.h"
@@ -15,12 +14,61 @@ static void idleTask(void);
 static void validateScheduler(void);
 static void enqueueReadyProcess(Process *process);
 static Process *dequeueNextReadyProcess(void);
-static int removeProcessFromQueue(QueueADT queue, Process *process);
+static int removeProcessFromQueue(int priority, Process *process);
 static void ageWaitingPriorities(void);
 static Process *tryDequeueAtPriority(int priority);
 
+typedef struct {
+    Process *entries[MAX_PROCESSES];
+    int count;
+} ReadyQueue;
+
+static void readyQueueInit(ReadyQueue *queue) {
+    queue->count = 0;
+}
+
+static int readyQueueIsEmpty(ReadyQueue *queue) {
+    return queue->count == 0;
+}
+
+static int readyQueueEnqueue(ReadyQueue *queue, Process *process) {
+    if (queue->count >= MAX_PROCESSES) {
+        return -1;
+    }
+    queue->entries[queue->count++] = process;
+    return 0;
+}
+
+static Process *readyQueueDequeue(ReadyQueue *queue) {
+    if (readyQueueIsEmpty(queue)) {
+        return NULL;
+    }
+    Process *next = queue->entries[0];
+    for (int i = 1; i < queue->count; i++) {
+        queue->entries[i - 1] = queue->entries[i];
+    }
+    queue->count--;
+    return next;
+}
+
+static int readyQueueRemove(ReadyQueue *queue, Process *process) {
+    if (readyQueueIsEmpty(queue) || process == NULL) {
+        return -1;
+    }
+    for (int i = 0; i < queue->count; i++) {
+        if (queue->entries[i] == process) {
+            for (int j = i + 1; j < queue->count; j++) {
+                queue->entries[j - 1] = queue->entries[j];
+            }
+            queue->count--;
+            return 0;
+        }
+    }
+    return -1;
+}
+
 typedef struct scheduler {
-    QueueADT readyQueues[MAX_PRIORITY + 1];
+    ReadyQueue readyQueues[MAX_PRIORITY + 1];
     Process * currentProcess;
     Process * idleProcess;
     int firstInterrupt;
@@ -31,19 +79,6 @@ typedef struct scheduler {
 } Scheduler;
 
 static Scheduler *scheduler = NULL;
-
-// Comparison function for finding processes (used by queueRemove)
-// Only compares process pointers for equality, NOT for priority ordering
-static int compareProcessForRemoval(void *a, void *b) {
-    Process *procA = (a == NULL) ? NULL : *(Process **)a;
-    Process *procB = (b == NULL) ? NULL : *(Process **)b;
-
-    if (procA == procB) {
-        return 0;
-    }
-    // Return non-zero if different (doesn't matter which value)
-    return (procA > procB) ? 1 : -1;
-}
 
 // Helper function to calculate quantum limit based on priority
 // Higher priority (higher number) = more time slices before context switch
@@ -59,10 +94,7 @@ int initScheduler() {
     }
 
     for (int priority = MIN_PRIORITY; priority <= MAX_PRIORITY; priority++) {
-        scheduler->readyQueues[priority] = createQueue((QueueElemCmpFn)compareProcessForRemoval, sizeof(Process *));
-        if (scheduler->readyQueues[priority] == NULL) {
-            panic("Failed to create ready queue for scheduler.");
-        }
+        readyQueueInit(&scheduler->readyQueues[priority]);
     }
 
     scheduler->currentQuantum = 0;
@@ -79,7 +111,7 @@ int initScheduler() {
         panic("Failed to create idle process.");
     }
 
-    dequeue(scheduler->readyQueues[idleProcess->priority], &idleProcess); // Ensure idle process is not in the ready queue
+    readyQueueRemove(&scheduler->readyQueues[idleProcess->priority], idleProcess); // Ensure idle process is not in the ready queue
     idleProcess->state = PROCESS_STATE_RUNNING;
     scheduler->currentProcess = idleProcess;
     scheduler->idleProcess = idleProcess;
@@ -171,7 +203,7 @@ int removeProcessFromScheduler(Process *process) {
     }
 
     if (process->priority >= MIN_PRIORITY && process->priority <= MAX_PRIORITY) {
-        if (removeProcessFromQueue(scheduler->readyQueues[process->priority], process) == 0) {
+        if (removeProcessFromQueue(process->priority, process) == 0) {
             return 0;
         }
     }
@@ -180,7 +212,7 @@ int removeProcessFromScheduler(Process *process) {
         if (priority == process->priority) {
             continue;
         }
-        if (removeProcessFromQueue(scheduler->readyQueues[priority], process) == 0) {
+        if (removeProcessFromQueue(priority, process) == 0) {
             return 0;
         }
     }
@@ -219,12 +251,6 @@ static void validateScheduler() {
     if (scheduler == NULL) {
         panic("Scheduler not initialized.");
     }
-
-    for (int priority = MIN_PRIORITY; priority <= MAX_PRIORITY; priority++) {
-        if (scheduler->readyQueues[priority] == NULL) {
-            panic("Scheduler ready queues not initialized.");
-        }
-    }
 }
 
 static void enqueueReadyProcess(Process *process) {
@@ -237,8 +263,8 @@ static void enqueueReadyProcess(Process *process) {
         panic("Process priority out of bounds.");
     }
 
-    if (enqueue(scheduler->readyQueues[priority], &process) == NULL) {
-        panic("Failed to enqueue process to scheduler.");
+    if (readyQueueEnqueue(&scheduler->readyQueues[priority], process) != 0) {
+        panic("Ready queue overflow.");
     }
 }
 
@@ -263,30 +289,27 @@ static Process *dequeueNextReadyProcess(void) {
 }
 
 static Process *tryDequeueAtPriority(int priority) {
-    QueueADT queue = scheduler->readyQueues[priority];
-    if (queue != NULL && !queueIsEmpty(queue)) {
-        Process *next = NULL;
-        if (dequeue(queue, &next) != NULL) {
-            scheduler->starvationCounters[priority] = 0;
-            return next;
-        }
+    ReadyQueue *queue = &scheduler->readyQueues[priority];
+    Process *next = readyQueueDequeue(queue);
+    if (next != NULL) {
+        scheduler->starvationCounters[priority] = 0;
+        return next;
     }
     return NULL;
 }
 
-static int removeProcessFromQueue(QueueADT queue, Process *process) {
-    if (queue == NULL || process == NULL || queueIsEmpty(queue)) {
+static int removeProcessFromQueue(int priority, Process *process) {
+    ReadyQueue *queue = &scheduler->readyQueues[priority];
+    if (process == NULL) {
         return -1;
     }
-
-    Process *target = process;
-    return queueRemove(queue, &target) == NULL ? -1 : 0;
+    return readyQueueRemove(queue, process);
 }
 
 static void ageWaitingPriorities(void) {
     for (int priority = MIN_PRIORITY; priority <= MAX_PRIORITY; priority++) {
-        QueueADT queue = scheduler->readyQueues[priority];
-        if (queue != NULL && !queueIsEmpty(queue)) {
+        ReadyQueue *queue = &scheduler->readyQueues[priority];
+        if (!readyQueueIsEmpty(queue)) {
             if (scheduler->starvationCounters[priority] < scheduler->starvationThreshold) {
                 scheduler->starvationCounters[priority]++;
             }
