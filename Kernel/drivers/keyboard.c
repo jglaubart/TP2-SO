@@ -6,6 +6,7 @@
 #include <cursor.h>
 #include <stddef.h>
 #include <process.h>
+#include <semaphore.h>
 
 #define BUFFER_SIZE 1024
 
@@ -35,6 +36,15 @@
 #define DEC_MOD(x, m) ((x) = SUB_MOD(x, 1, m))
 
 #define SHELL_CTRL_K_CHAR 0x0B
+
+semADT semKey = NULL;
+
+void initKeySem(){
+    semADT semKey = semInit("keyb", 0);
+    if (semKey == NULL) {
+        return;  
+    }
+}
 
 static uint8_t SHIFT_KEY_PRESSED, CAPS_LOCK_KEY_PRESSED, CONTROL_KEY_PRESSED;
 static int8_t buffer[BUFFER_SIZE];
@@ -214,7 +224,9 @@ int8_t getKeyboardCharacter(enum KEYBOARD_OPTIONS ops) {
             !(buffer[SUB_MOD(to_write, 1, BUFFER_SIZE)] == NEW_LINE_CHAR ||
               buffer[SUB_MOD(to_write, 1, BUFFER_SIZE)] == EOF ||
               buffer[SUB_MOD(to_write, 1, BUFFER_SIZE)] == SHELL_CTRL_K_CHAR)
-        )) _hlt();
+        )) 
+        //_hlt(); 
+        wait(semKey);
 
     keyboard_options = 0;
     int8_t aux = buffer[to_read];
@@ -223,6 +235,7 @@ int8_t getKeyboardCharacter(enum KEYBOARD_OPTIONS ops) {
 }
 
 uint8_t keyboardHandler(){
+    post(semKey);
     uint8_t scancode = getKeyboardBuffer();
     uint8_t is_pressed = isPressed(scancode);
 

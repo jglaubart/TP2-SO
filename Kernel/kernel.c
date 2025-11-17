@@ -16,6 +16,7 @@
 #include "process.h"
 #include "semaphores.h"
 #include "pipes.h"
+#include <keyboard.h>
 
 // extern uint8_t text;
 // extern uint8_t rodata;
@@ -66,6 +67,8 @@ int main(){
 	initSemaphoreQueue();
 	initPipes();
 	setFontSize(2);
+	initKeySem();
+
 
 	if (startInitProcess(shellModuleAddress) < 0) {
 		panic("Failed to start init process");

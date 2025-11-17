@@ -113,5 +113,6 @@ uint8_t keyboardHandler();
 uint8_t registerSpecialKey(enum KEYS scancode, SpecialKeyHandler fn, uint8_t registeredFromKernel);
 void clearKeyFnMapNonKernel(SpecialKeyHandler * map);
 void restoreKeyFnMapNonKernel(SpecialKeyHandler * map);
+void initKeySem();
 
 #endif
