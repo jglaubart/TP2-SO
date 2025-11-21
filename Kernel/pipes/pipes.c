@@ -6,7 +6,6 @@
 #include "memory.h"
 #include "panic.h"
 #include "process.h"
-#include "scheduler.h"
 #include "lib.h"
 #include "semaphores.h"
 #include "strings.h"
@@ -20,7 +19,8 @@ struct pipeCDT {
     int readIndex;
     int writeIndex;
     uint8_t buffer[PIPE_BUFFER_SIZE];
-    semADT dataSem;
+    semADT readSem;
+    semADT writeSem;
     int refCount;
     int closed;
     uint8_t lock;
@@ -59,7 +59,8 @@ static void freePipe(pipeADT pipe) {
     if (pipe == NULL) {
         return;
     }
-    semDestroy(pipe->dataSem);
+    semDestroy(pipe->readSem);
+    semDestroy(pipe->writeSem);
     myFree(pipe);
 }
 
@@ -80,9 +81,17 @@ static pipeADT buildPipe(int slot, int serial) {
     newPipe->writerCount = 0;
 
     // Initialize semaphores
-    getSemName(serial, 'D');
-    newPipe->dataSem = semInit(semNameBuffer, 0);
-    if(newPipe->dataSem == NULL){
+    getSemName(serial, 'R');
+    newPipe->readSem = semInit(semNameBuffer, 0);
+    if(newPipe->readSem == NULL){
+        myFree(newPipe);
+        return NULL;
+    }
+    getSemName(serial, 'W');
+    newPipe->writeSem = semInit(semNameBuffer, PIPE_BUFFER_SIZE);
+    if(newPipe->writeSem == NULL){
+        semDestroy(newPipe->readSem);
+        newPipe->readSem = NULL;
         myFree(newPipe);
         return NULL;
     }
@@ -155,6 +164,7 @@ static int closePipeInternal(pipeADT pipe, PipeEndpointRole role) {
     }
 
     int wakeReaders = FALSE;
+    int wakeWriters = FALSE;
     int remainingRefs;
 
     semLock(&pipe->lock);
@@ -177,6 +187,7 @@ static int closePipeInternal(pipeADT pipe, PipeEndpointRole role) {
                     pipe->closed = TRUE;
                 }
                 wakeReaders = TRUE;
+                wakeWriters = TRUE;
             }
         }
     }
@@ -188,12 +199,16 @@ static int closePipeInternal(pipeADT pipe, PipeEndpointRole role) {
             pipe->closed = TRUE;
         }
         wakeReaders = TRUE;
+        wakeWriters = TRUE;
     }
 
     semUnlock(&pipe->lock);
 
     if (wakeReaders) {
-        wakeBlocked(pipe->dataSem);
+        wakeBlocked(pipe->readSem);
+    }
+    if (wakeWriters) {
+        wakeBlocked(pipe->writeSem);
     }
 
     if (remainingRefs > 0) {
@@ -217,10 +232,6 @@ static int pipeHasData(pipeADT pipe) {
     return pipe->readIndex != pipe->writeIndex;
 }
 
-static int pipeIsFull(pipeADT pipe) {
-    return NEXT_IDX(pipe->writeIndex) == pipe->readIndex;
-}
-
 int readPipe(int pipeID, uint8_t * buffer, int size) {
     pipeADT pipe = getPipe(pipeID);
     if (pipe == NULL || buffer == NULL || size < 0) {
@@ -239,16 +250,12 @@ int readPipe(int pipeID, uint8_t * buffer, int size) {
             break;
         }
 
-        if (wait(pipe->dataSem) != 0) {
+        if (wait(pipe->readSem) != 0) {
             break;
         }
 
-        semLock(&pipe->lock);
-
         if (!pipeHasData(pipe)) {
-            int writersRemaining = pipe->writerCount;
-            semUnlock(&pipe->lock);
-            if (pipe->closed || writersRemaining == 0) {
+            if (pipe->closed) {
                 break;
             }
             continue;
@@ -256,7 +263,10 @@ int readPipe(int pipeID, uint8_t * buffer, int size) {
 
         buffer[bytesRead] = pipe->buffer[pipe->readIndex];
         pipe->readIndex = NEXT_IDX(pipe->readIndex);
-        semUnlock(&pipe->lock);
+
+        if (post(pipe->writeSem) != 0) {
+            panic("Pipe write semaphore failed");
+        }
 
         bytesRead++;
     }
@@ -282,24 +292,26 @@ int writePipe(int pipeID, uint8_t * buffer, int size) {
     int written = 0;
 
     while (written < size) {
-        semLock(&pipe->lock);
         if (pipe->closed) {
-            semUnlock(&pipe->lock);
             break;
         }
 
-        if (pipeIsFull(pipe)) {
-            semUnlock(&pipe->lock);
-            yield();
-            continue;
+        if (wait(pipe->writeSem) != 0) {
+            break;
+        }
+
+        if (pipe->closed) {
+            if (post(pipe->writeSem) != 0) {
+                panic("Pipe write semaphore failed");
+            }
+            break;
         }
 
         pipe->buffer[pipe->writeIndex] = buffer[written];
         pipe->writeIndex = NEXT_IDX(pipe->writeIndex);
-        semUnlock(&pipe->lock);
 
-        if (post(pipe->dataSem) != 0) {
-            panic("Pipe data semaphore failed");
+        if (post(pipe->readSem) != 0) {
+            panic("Pipe read semaphore failed");
         }
 
         written++;
