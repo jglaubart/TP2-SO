@@ -4,7 +4,6 @@
 #include "panic.h"
 #include "interrupts.h"
 #include "process.h"
-#include "strings.h"
 #include "memory.h"
 
 #define STARVATION_THRESHOLD 5
@@ -16,6 +15,7 @@ static Process *dequeueNextReadyProcess(void);
 static int removeProcessFromQueue(int priority, Process *process);
 static void ageWaitingPriorities(void);
 static Process *tryDequeueAtPriority(int priority);
+static int readyQueuesAreEmpty(void);
 
 typedef struct {
     Process *entries[MAX_PROCESSES];
@@ -79,6 +79,15 @@ typedef struct scheduler {
 
 static Scheduler *scheduler = NULL;
 
+static int readyQueuesAreEmpty(void) {
+    for (int priority = MIN_PRIORITY; priority <= MAX_PRIORITY; priority++) {
+        if (!readyQueueIsEmpty(&scheduler->readyQueues[priority])) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 // Helper function to calculate quantum limit based on priority
 // Higher priority (higher number) = more time slices before context switch
 static int getQuantumLimit(int priority) {
@@ -122,6 +131,8 @@ int initScheduler() {
 uint8_t *schedule(uint8_t *rsp) {
     processCleanupTerminated(scheduler == NULL ? NULL : scheduler->currentProcess);
 
+    Process *previousProcess = scheduler->currentProcess;
+
     if (scheduler->currentProcess != NULL) {
         // On the first interrupt, we're still in kernel context, not in the idle process context.
         // Don't overwrite the idle process's properly initialized stack frame.
@@ -138,9 +149,21 @@ uint8_t *schedule(uint8_t *rsp) {
                           (scheduler->currentQuantum >= scheduler->quantumLimit);
         
         if (shouldSwitch) {
+            if (scheduler->currentProcess == scheduler->idleProcess && readyQueuesAreEmpty()) {
+                // Keep running idle without re-enqueuing it when nothing else is ready.
+                scheduler->currentQuantum = 0;
+                scheduler->quantumLimit = getQuantumLimit(scheduler->idleProcess->priority);
+                scheduler->firstInterrupt = 0;
+                return scheduler->currentProcess->rsp;
+            }
+
             if (scheduler->currentProcess->state == PROCESS_STATE_RUNNING) {
-                scheduler->currentProcess->state = PROCESS_STATE_READY;
-                enqueueReadyProcess(scheduler->currentProcess);
+                // Move the current process out of RUNNING state before picking the next one.
+                Process *toRequeue = scheduler->currentProcess;
+                toRequeue->state = PROCESS_STATE_READY;
+                if (toRequeue != scheduler->idleProcess) {
+                    enqueueReadyProcess(toRequeue);
+                }
             }
         } else {
             // Don't switch yet, continue with current process
