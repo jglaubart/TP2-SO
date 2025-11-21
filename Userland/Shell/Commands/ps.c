@@ -60,7 +60,7 @@ int _ps(int argc, char * argv[]){
     }
     padding_state_header[j] = '\0';
 
-	printf("\e[0;0mPID\tName%sState%sPriority\tRSP\t\tRBP\t\tIn foreground\n",
+	printf("\e[0;0mPID\tName%sState%sPriority\tRSP\t\tRBP\t\tIn FG\n",
 	       padding_header, padding_state_header);
 
     for (int i = 0; i < count; i++) {

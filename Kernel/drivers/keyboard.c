@@ -40,10 +40,7 @@
 semADT semKey = NULL;
 
 void initKeySem(){
-    semADT semKey = semInit("keyb", 0);
-    if (semKey == NULL) {
-        return;  
-    }
+    semKey = semInit("keyb", 0);
 }
 
 static uint8_t SHIFT_KEY_PRESSED, CAPS_LOCK_KEY_PRESSED, CONTROL_KEY_PRESSED;
@@ -225,8 +222,7 @@ int8_t getKeyboardCharacter(enum KEYBOARD_OPTIONS ops) {
               buffer[SUB_MOD(to_write, 1, BUFFER_SIZE)] == EOF ||
               buffer[SUB_MOD(to_write, 1, BUFFER_SIZE)] == SHELL_CTRL_K_CHAR)
         )) 
-        //_hlt(); 
-        wait(semKey);
+        wait(semKey); 
 
     keyboard_options = 0;
     int8_t aux = buffer[to_read];
@@ -235,9 +231,9 @@ int8_t getKeyboardCharacter(enum KEYBOARD_OPTIONS ops) {
 }
 
 uint8_t keyboardHandler(){
-    post(semKey);
     uint8_t scancode = getKeyboardBuffer();
     uint8_t is_pressed = isPressed(scancode);
+    uint8_t signal_input = 0;
 
     if(BUFFER_IS_FULL){
         to_read = to_write = 0;
@@ -269,6 +265,10 @@ uint8_t keyboardHandler(){
         if (status == 0 && (keyboard_options & MODIFY_BUFFER) != 0) {
             to_write = to_read;
             addCharToBuffer(NEW_LINE_CHAR, keyboard_options & SHOW_BUFFER_WHILE_TYPING);
+            signal_input = 1;
+        }
+        if (signal_input) {
+            post(semKey);
         }
         return scancode;
     }
@@ -276,6 +276,10 @@ uint8_t keyboardHandler(){
     if (CONTROL_KEY_PRESSED && makeCode(scancode) == D_KEY) {
         if ((keyboard_options & MODIFY_BUFFER) != 0) {
             addCharToBuffer(EOF, 0);
+            signal_input = 1;
+        }
+        if (signal_input) {
+            post(semKey);
         }
         return scancode;
     }
@@ -283,6 +287,10 @@ uint8_t keyboardHandler(){
     if (CONTROL_KEY_PRESSED && makeCode(scancode) == K_KEY) {
         if ((keyboard_options & MODIFY_BUFFER) != 0) {
             addCharToBuffer(SHELL_CTRL_K_CHAR, 0);
+            signal_input = 1;
+        }
+        if (signal_input) {
+            post(semKey);
         }
         return scancode;
     }
@@ -306,6 +314,7 @@ uint8_t keyboardHandler(){
             }
 
             addCharToBuffer(c, keyboard_options & SHOW_BUFFER_WHILE_TYPING);
+            signal_input = 1;
         } else if (c == BACKSPACE_KEY && to_write != to_read) {
             DEC_MOD(to_write, BUFFER_SIZE);
             clearPreviousCharacter();
@@ -315,6 +324,10 @@ uint8_t keyboardHandler(){
     // Call the registered function for the key, if any
     if (KeyFnMap[make].fn != 0) {
         KeyFnMap[make].fn(make);
+    }
+
+    if (signal_input) {
+        post(semKey);
     }
 
     return scancode;

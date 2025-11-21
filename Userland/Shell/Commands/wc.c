@@ -19,7 +19,7 @@ int _wc(int argc, char **argv) {
     }
 
     if (printed) {
-        printf("\n%d\n\n", lines);
+        printf("\n\n%d\n\n", lines+1);
     } else {
         printf("\n0\n\n\n");
     }
