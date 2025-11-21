@@ -254,15 +254,19 @@ int readPipe(int pipeID, uint8_t * buffer, int size) {
             break;
         }
 
+        semLock(&pipe->lock);
         if (!pipeHasData(pipe)) {
             if (pipe->closed) {
+                semUnlock(&pipe->lock);
                 break;
             }
+            semUnlock(&pipe->lock);
             continue;
         }
 
         buffer[bytesRead] = pipe->buffer[pipe->readIndex];
         pipe->readIndex = NEXT_IDX(pipe->readIndex);
+        semUnlock(&pipe->lock);
 
         if (post(pipe->writeSem) != 0) {
             panic("Pipe write semaphore failed");
@@ -300,7 +304,9 @@ int writePipe(int pipeID, uint8_t * buffer, int size) {
             break;
         }
 
+        semLock(&pipe->lock);
         if (pipe->closed) {
+            semUnlock(&pipe->lock);
             if (post(pipe->writeSem) != 0) {
                 panic("Pipe write semaphore failed");
             }
@@ -309,6 +315,7 @@ int writePipe(int pipeID, uint8_t * buffer, int size) {
 
         pipe->buffer[pipe->writeIndex] = buffer[written];
         pipe->writeIndex = NEXT_IDX(pipe->writeIndex);
+        semUnlock(&pipe->lock);
 
         if (post(pipe->readSem) != 0) {
             panic("Pipe read semaphore failed");

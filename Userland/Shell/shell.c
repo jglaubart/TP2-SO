@@ -589,6 +589,7 @@ static void handle_backspace(enum REGISTERABLE_KEYS scancode) {
 static void handle_mvar_kill_hotkey(void) {
 	putchar('\n');
 	reset_input_buffer();
+	clearInputBuffer();
 	char *argv[] = {"mvar-kill", NULL};
 	_mvar_close(1, argv);
 	show_prompt();
