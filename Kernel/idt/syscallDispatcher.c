@@ -339,7 +339,12 @@ int32_t sys_register_key(uint8_t scancode, SpecialKeyHandler fn){
 // Sleep system calls
 // ==================================================================
 int32_t sys_sleep_milis(uint32_t milis) {
-	sleepTicks( (milis * SECONDS_TO_TICKS) / 1000 );
+	// Round up to at least one tick for small millisecond values
+	uint64_t ticks = ((uint64_t)milis * SECONDS_TO_TICKS + 999) / 1000;
+	if (ticks == 0 && milis > 0) {
+		ticks = 1;
+	}
+	sleepTicks(ticks);
 	return 0;
 }
 

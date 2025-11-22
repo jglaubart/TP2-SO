@@ -70,11 +70,7 @@ static int writerMain(int argc, char **argv);
 static int readerMain(int argc, char **argv);
 int _mvar_close(int argc, char **argv);
 
-static void busy_wait(uint64_t iter) {
-	for (uint64_t i = 0; i < iter; i++) {
-		yield();
-	}
-}
+static void busy_wait(uint64_t millis) { sleep((uint32_t)millis); }
 
 static uint32_t rng_next(uint32_t seed) {
 	int hour = 0;
@@ -279,7 +275,8 @@ static int writerMain(int argc, char **argv) {
 
 	for (int i = 0; max_loops < 0 || i < max_loops; i++) {
 		seed = rng_next(seed);
-		busy_wait((seed % 50U) + 1U);
+		// Sleep a few timer ticks to desincronize writers
+		busy_wait((seed % 200U) + 10U);
 
 		if (kernel_mvar_put(id) < 0) {
 			printf("mvar: writer failed to put value\n");
@@ -302,7 +299,8 @@ static int readerMain(int argc, char **argv) {
 
 	for (int i = 0; max_loops < 0 || i < max_loops; i++) {
 		seed = rng_next(seed);
-		busy_wait((seed % 60U) + 1U);
+		// Sleep a few timer ticks to desincronize readers
+		busy_wait((seed % 250U) + 20U);
 
 		char value = 0;
 		if (kernel_mvar_take(&value) < 0) {
